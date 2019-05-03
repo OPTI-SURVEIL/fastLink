@@ -324,7 +324,7 @@ fastLink <- function(dfA, dfB, varnames,
     colnames(counts)[seq_along(varnames)] = varnames
     if(dedupe.df){
       #Added correction to remove self-comparisons from internal linkage
-      tempfrm = dfA
+      tempfrm = dfA[,varnames]
       tempfrm[!is.na(tempfrm)] = 2
       tempfrm = data.frame(lapply(tempfrm,as.numeric))
       count_cor = plyr::count(tempfrm)
@@ -333,9 +333,10 @@ fastLink <- function(dfA, dfB, varnames,
       
       counts[match(seeknms,trgtnms),'counts'] = counts[match(seeknms,trgtnms),'counts'] - count_cor$freq
       counts = counts[counts[,'counts'] != 0,]
+      counts[,'counts'] = counts[,'counts']/2
       dropvars = which(apply(counts[,seq_along(varnames)],2,function(v) length(unique(v)) == 1))
       if(length(dropvars)>0){
-        cat('Dropping variable(s) [', colnames(counts)[dropvars],'] due to lack of variation \n',sep = '')
+        cat('    Dropping variable(s) [', colnames(counts)[dropvars],'] due to lack of variation \n',sep = '')
         counts = counts[,-dropvars]
         varnames = varnames[-dropvars]
         gammalist = gammalist[-dropvars]
