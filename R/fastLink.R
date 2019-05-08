@@ -218,6 +218,8 @@ fastLink <- function(dfA, dfB, varnames,
             stop("Invalid value provided for jw.weight. Remember, jw.weight in [0, 0.25].")
         }
     }
+    if(is.function(stringdist.method) & is.null(stringdist.args))
+      stop("You must provide a list of arguments if using a custom string comparison function")
     if(return.all){
         threshold.match <- 0.001
         if(!dedupe.matches){
