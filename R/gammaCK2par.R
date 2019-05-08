@@ -10,7 +10,10 @@
 #' @param matBp vector storing the comparison field in data set 2
 #' @param n.cores Number of cores to parallelize over. Default is NULL.
 #' @param cut.a Lower bound for full match, ranging between 0 and 1. Default is 0.92
-#' @param method String distance method, options are: "jw" Jaro-Winkler (Default), "jaro" Jaro, and "lv" Edit
+#' @param method String distance method, options are: "jw" Jaro-Winkler (Default), "jaro" Jaro, and "lv" Edit. 
+#' May also be passed as a custom function with argument list stringdist.args. The first two arguments of 
+#' any custom function provided should be the strings to be compared
+#' @param method.args List of arguments for custom function provided to method
 #' @param w Parameter that describes the importance of the first characters of a string (only needed if method = "jw"). Default is .10
 #'
 #' @return \code{gammaCK2par} returns a list with the indices corresponding to each
@@ -30,7 +33,7 @@
 ## in parallel
 ## ------------------------
 
-gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw", w = .10) {
+gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw", method.args = NULL,w = .10) {
 
     if(any(class(matAp) %in% c("tbl_df", "data.table"))){
         matAp <- as.data.frame(matAp)[,1]
@@ -49,10 +52,13 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
         cat("WARNING: You have no variation in this variable, or all observations are missing in dataset B.\n")
     }
 
-    if(!(method %in% c("jw", "jaro", "lv"))){
-        stop("Invalid string distance method. Method should be one of 'jw', 'jaro', or 'lv'.")
+    if( !is.function(method) && !(method %in% c("jw", "jaro", "lv"))){
+      stop("Invalid string distance method. Method should be one of 'jw', 'jaro', or 'lv'.")
     }
-
+    
+    if(is.function(method) && is.null(method.args))
+      stop("You must provide a list of arguments if using a custom string comparison function")
+    
     if(method == "jw" & !is.null(w)){
         if(w < 0 | w > 0.25){
             stop("Invalid value provided for w. Remember, w in [0, 0.25].")
@@ -93,6 +99,12 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
     stringvec <- function(m, y, cut, strdist = method, p1 = w) {
         x <- as.matrix(m[[1]])
         e <- as.matrix(y[[1]])        
+        
+        if(is.function(strdist)){
+          t <- do.call(method,c(e, x, method.args))
+          t[ t < cut[[2]] ] <- 0
+          t <- Matrix(t, sparse = T)
+        }
         
         if(strdist == "jw") {
             t <- 1 - stringdistmatrix(e, x, method = "jw", p = p1, nthread = 1)

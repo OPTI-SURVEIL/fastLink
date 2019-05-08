@@ -20,7 +20,7 @@
 #'   must not be present in 'numeric.match'.
 #' @param stringdist.method String distance method for calculating similarity,
 #'   options are: "jw" Jaro-Winkler (Default), "jaro" Jaro, and "lv" Edit. May
-#'   also be a function for custom methods.
+#'   also be a function for custom methods. If a function is given, the first two arguments should correspond to 
 #' @param stringdist.args List of arguments to be provided to stringdist.method
 #'   if a custom function is used.
 #' @param numeric.match A vector of variable names indicating which variables
@@ -218,6 +218,8 @@ fastLink <- function(dfA, dfB, varnames,
             stop("Invalid value provided for jw.weight. Remember, jw.weight in [0, 0.25].")
         }
     }
+    if(is.function(stringdist.method) & is.null(stringdist.args))
+      stop("You must provide a list of arguments if using a custom string comparison function")
     if(return.all){
         threshold.match <- 0.001
         if(!dedupe.matches){
@@ -321,10 +323,14 @@ fastLink <- function(dfA, dfB, varnames,
         if(stringdist.match[i]){
             if(partial.match[i]){
                 gammalist[[i]] <- gammaCKpar(
-                    dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a, cut.p = cut.p, method = stringdist.method, w = jw.weight, n.cores = n.cores
+                    dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a, cut.p = cut.p, method = stringdist.method, 
+                    method.args = stringdist.args, w = jw.weight, n.cores = n.cores
                 )
             }else{
-                gammalist[[i]] <- gammaCK2par(dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a, method = stringdist.method, w = jw.weight, n.cores = n.cores)
+                gammalist[[i]] <- gammaCK2par(dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a, 
+                                              method = stringdist.method, 
+                                              method.args = stringdist.args,
+                                              w = jw.weight, n.cores = n.cores)
             }
         }else if(numeric.match[i]){
             if(partial.match[i]){
