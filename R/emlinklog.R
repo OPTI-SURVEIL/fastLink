@@ -237,11 +237,13 @@ emlinklog <- function(patterns, nobs.a, nobs.b,
     if(!is.null(varnames)){
         output <- list("zeta.j"= zeta.j,"p.m"= p.m, "p.u" = p.u, 
                        "p.gamma.j.m" = p.gamma.j.m, "p.gamma.j.u" = p.gamma.j.u, "patterns.w" = data.w, "iter.converge" = count,
-                       "nobs.a" = nobs.a, "nobs.b" = nobs.b, "varnames" = varnames)
+                       "nobs.a" = nobs.a, "nobs.b" = nobs.b, "varnames" = varnames,match_mod = matches,
+                       nonmatch_mod = nonmatches)
     }else{
         output <- list("zeta.j"= zeta.j,"p.m"= p.m, "p.u" = p.u, 
                        "p.gamma.j.m" = p.gamma.j.m, "p.gamma.j.u" = p.gamma.j.u, "patterns.w" = data.w, "iter.converge" = count,
-                       "nobs.a" = nobs.a, "nobs.b" = nobs.b, "varnames" = paste0("gamma.", 1:nfeatures))
+                       "nobs.a" = nobs.a, "nobs.b" = nobs.b, "varnames" = paste0("gamma.", 1:nfeatures),match_mod = matches,
+                       nonmatch_mod = nonmatches)
     }
 
     
