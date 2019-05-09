@@ -79,8 +79,8 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
     u.values.1 <- unique(matrix.1)
     u.values.2 <- unique(matrix.2)
 
-    n.slices1 <- max(round(length(u.values.1)/(4500), 0), 1) 
-    n.slices2 <- max(round(length(u.values.2)/(4500), 0), 1) 
+    n.slices1 <- max(round(length(u.values.1)/(100), 0), 1) 
+    n.slices2 <- max(round(length(u.values.2)/(100), 0), 1) 
 
     limit.1 <- round(quantile((0:nrow(u.values.2)), p = seq(0, 1, 1/n.slices2)), 0)
     limit.2 <- round(quantile((0:nrow(u.values.1)), p = seq(0, 1, 1/n.slices1)), 0)
@@ -103,7 +103,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
         
         if(is.function(strdist)){
           t <- do.call(method,c(list(e, x), method.args))
-          t[ t < cut[[2]] ] <- 0
+          t[ t < cut ] <- 0
           t <- Matrix(t, sparse = T)
         }else{
           if(strdist == "jw") {
@@ -143,18 +143,22 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
     if (n.cores == 1) '%oper%' <- foreach::'%do%'
     else { 
         '%oper%' <- foreach::'%dopar%'
-        cl <- makeCluster(n.cores)
+        cl <- makeCluster(n.cores,outfile='')
         registerDoParallel(cl)
         on.exit(stopCluster(cl))
     }
-
-    temp.f <- temp.f <- foreach(i = 1:nrow(do), #this is a bit of a clunky solution (just exporting all functions and packages), may want to try for more elegant approach in future
+    
+    pb = txtProgressBar(0,nrow(do),style = 3)
+    
+    temp.f <- invisible(foreach(i = 1:nrow(do), #this is a bit of a clunky solution (just exporting all functions and packages), may want to try for more elegant approach in future
                                 .packages = c("stringdist", "Matrix",gsub('package:','',grep('package',search(),value = T))),
-                                .export = as.character(lsf.str())) %oper% { 
+                                .export = as.character(lsf.str(envir = globalenv()))) %oper% { 
         r1 <- do[i, 1]
         r2 <- do[i, 2]
+        if(i %% 100 == 0) setTxtProgressBar(pb,i)
         stringvec(temp.1[[r1]], temp.2[[r2]], cut.a)
-    }
+        
+    })
 
     gc()
 
