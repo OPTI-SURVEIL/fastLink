@@ -150,20 +150,24 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
     else { 
         '%oper%' <- foreach::'%dopar%'
         cl <- makeCluster(n.cores,outfile='')
-        registerDoParallel(cl)
+        registerDoSNOW(cl)
         on.exit(stopCluster(cl))
     }
     
     pb = txtProgressBar(0,nrow(do),style = 3)
     
-    temp.f <- silent(foreach(i = 1:nrow(do), #this is a bit of a clunky solution (just exporting all functions and packages), may want to try for more elegant approach in future
+    progress <- function(n) if(n %% 100 == 0) setTxtProgressBar(pb, n)
+    opts <- list(progress = progress)
+    
+    temp.f <- foreach(i = 1:nrow(do), #this is a bit of a clunky solution (just exporting all functions and packages), may want to try for more elegant approach in future
                       .packages = c("stringdist", "Matrix",gsub('package:','',grep('package',search(),value = T))),
-                      .export = as.character(lsf.str(envir = globalenv()))) %oper% { 
+                      .export = as.character(lsf.str(envir = globalenv())),
+                      options.snow=opts) %oper% { 
         r1 <- do[i, 1]
         r2 <- do[i, 2]
-        if(i %% 100 == 0) setTxtProgressBar(pb,value = i)
+        #if(i %% 100 == 0) setTxtProgressBar(pb,value = i)
         stringvec(temp.1[[r1]], temp.2[[r2]], c(cut.a, cut.p))
-    })
+    }
 
     gc()
 
