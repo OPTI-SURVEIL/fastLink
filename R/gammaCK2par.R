@@ -79,8 +79,8 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
     u.values.1 <- unique(matrix.1)
     u.values.2 <- unique(matrix.2)
 
-    n.slices1 <- max(round(length(u.values.1)/(100), 0), 1) 
-    n.slices2 <- max(round(length(u.values.2)/(100), 0), 1) 
+    n.slices1 <- max(round(length(u.values.1)/(300), 0), 1) 
+    n.slices2 <- max(round(length(u.values.2)/(300), 0), 1) 
 
     limit.1 <- round(quantile((0:nrow(u.values.2)), p = seq(0, 1, 1/n.slices2)), 0)
     limit.2 <- round(quantile((0:nrow(u.values.1)), p = seq(0, 1, 1/n.slices1)), 0)
@@ -150,7 +150,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
     
     pb = txtProgressBar(0,nrow(do),style = 3)
     
-    progress <- function(n) if(n %% 100 == 0) setTxtProgressBar(pb, n)
+    progress <- function(n) setTxtProgressBar(pb, n)
     opts <- list(progress = progress)
     
     temp.f <- foreach(i = 1:nrow(do), #this is a bit of a clunky solution (just exporting all functions and packages), may want to try for more elegant approach in future
