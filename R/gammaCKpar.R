@@ -153,8 +153,10 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
         registerDoParallel(cl)
         on.exit(stopCluster(cl))
     }
-
-    temp.f <- foreach(i = 1:nrow(do), .packages = c("stringdist", "Matrix")) %oper% { 
+    
+    temp.f <- foreach(i = 1:nrow(do), #this is a bit of a clunky solution (just exporting all functions and packages), may want to try for more elegant approach in future
+                      .packages = c("stringdist", "Matrix",gsub('package:','',grep('package',search(),value = T))),
+                      .export = as.character(lsf.str())) %oper% { 
         r1 <- do[i, 1]
         r2 <- do[i, 2]
         stringvec(temp.1[[r1]], temp.2[[r2]], c(cut.a, cut.p))
