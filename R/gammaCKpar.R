@@ -55,18 +55,18 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
         cat("WARNING: You have no variation in this variable, or all observations are missing in dataset B.\n")
     }
     
-    if( !is.function(method) && !(method %in% c("jw", "jaro", "lv"))){
+    if( !is.function(method)){
+      if(!(method %in% c("jw", "jaro", "lv")))
         stop("Invalid string distance method. Method should be one of 'jw', 'jaro', or 'lv'.")
-    }
-    
+      if(method == "jw" & !is.null(w)){
+        if(w < 0 | w > 0.25){
+          stop("Invalid value provided for w. Remember, w in [0, 0.25].")
+        }
+      }
+    } 
+        
     if(is.function(method) && is.null(method.args))
       stop("You must provide a list of arguments if using a custom string comparison function")
-
-    if(method == "jw" & !is.null(w)){
-        if(w < 0 | w > 0.25){
-        	stop("Invalid value provided for w. Remember, w in [0, 0.25].")
-        }
-    }
 
     if(is.null(n.cores)) {
         n.cores <- detectCores() - 1
@@ -107,29 +107,29 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
           t <- do.call(method,c(e, x, method.args))
           t[ t < cut[[2]] ] <- 0
           t <- Matrix(t, sparse = T)
-        }
-        
-        if(strdist == "jw") {
-        		t <- 1 - stringdistmatrix(e, x, method = "jw", p = p1, nthread = 1)
-        		t[ t < cut[[2]] ] <- 0
-        		t <- Matrix(t, sparse = T)
-        	}
-
-        if(strdist == "jaro") {
-        		t <- 1 - stringdistmatrix(e, x, method = "jw", nthread = 1)
-        		t[ t < cut[[2]] ] <- 0
-        		t <- Matrix(t, sparse = T)
-        	}
-
-        if(strdist == "lv") {
+        }else{
+          if(strdist == "jw") {
+            t <- 1 - stringdistmatrix(e, x, method = "jw", p = p1, nthread = 1)
+            t[ t < cut[[2]] ] <- 0
+            t <- Matrix(t, sparse = T)
+          }
+          
+          if(strdist == "jaro") {
+            t <- 1 - stringdistmatrix(e, x, method = "jw", nthread = 1)
+            t[ t < cut[[2]] ] <- 0
+            t <- Matrix(t, sparse = T)
+          }
+          
+          if(strdist == "lv") {
             t <- stringdistmatrix(e, x, method = method, nthread = 1)
             t.1 <- nchar(as.matrix(e))
             t.2 <- nchar(as.matrix(x))
             o <- t(apply(t.1, 1, function(w){ ifelse(w >= t.2, w, t.2)}))
             t <- 1 - t * (1/o)
-        		t[ t < cut[[2]] ] <- 0
-        		t <- Matrix(t, sparse = T)
-        	}
+            t[ t < cut[[2]] ] <- 0
+            t <- Matrix(t, sparse = T)
+          }
+        }
         
         t@x[t@x >= cut[1]] <- 2
         t@x[t@x >= cut[2] & t@x < cut[1]] <- 1; gc()
