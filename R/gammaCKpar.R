@@ -104,7 +104,7 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
         e <- as.matrix(y[[1]])
         
         if(is.function(strdist)){
-          t <- do.call(method,c(e, x, method.args))
+          t <- do.call(method,c(list(e, x), method.args))
           t[ t < cut[[2]] ] <- 0
           t <- Matrix(t, sparse = T)
         }else{
