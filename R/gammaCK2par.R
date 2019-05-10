@@ -33,7 +33,7 @@
 ## in parallel
 ## ------------------------
 
-gammaCK2par <- function(matAp = val_ldata$cleanname; matBp=val_ldata$cleanname; n.cores = NULL; cut.a = 0.92; method = "jw"; method.args = NULL;w = .10) {
+gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw", method.args = NULL, w = .10) {
 
     if(any(class(matAp) %in% c("tbl_df", "data.table"))){
         matAp <- as.data.frame(matAp)[,1]
