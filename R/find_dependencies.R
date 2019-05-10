@@ -25,7 +25,7 @@ find_dependencies = function(f,drops = NULL,lyr = 1){
   drops = c(drops,calls)
   
   fcalls = sapply(calls,function(x) try(get(x),silent = T))
-  missing = sapply(fcalls,is.character)
+  missing = sapply(fcalls,function(x) any(is.character(x)))
   
   missingcalls = calls[missing]; calls = calls[!missing];fcalls = fcalls[!missing]
   prims = sapply(fcalls,is.primitive)
