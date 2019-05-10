@@ -150,7 +150,7 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
     
     if(is.function(method)){
       deps = find_dependencies(method)
-      exports = deps$depends$calls[sapply(res$depends$pkgs,function(x) '.GlobalEnv' %in% x)]
+      exports = deps$depends$calls[sapply(deps$depends$pkgs,function(x) '.GlobalEnv' %in% x)]
       
       pkgs = unique(unlist(deps$depends$pkgs))
       pkgs = pkgs[!(pkgs %in% c('base','.GlobalEnv'))]
@@ -160,7 +160,7 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
     if (n.cores == 1) '%oper%' <- foreach::'%do%'
     else { 
         '%oper%' <- foreach::'%dopar%'
-        cl <- snow::makeCluster(n.cores,outfile='')
+        cl <- makeCluster(n.cores,outfile='')
         registerDoSNOW(cl)
         on.exit(stopCluster(cl))
     }
