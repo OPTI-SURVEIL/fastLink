@@ -33,7 +33,7 @@
 ## in parallel
 ## ------------------------
 
-gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw", method.args = NULL,w = .10) {
+gammaCK2par <- function(matAp = val_ldata$cleanname; matBp=val_ldata$cleanname; n.cores = NULL; cut.a = 0.92; method = "jw"; method.args = NULL;w = .10) {
 
     if(any(class(matAp) %in% c("tbl_df", "data.table"))){
         matAp <- as.data.frame(matAp)[,1]
@@ -67,7 +67,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
     
     
     if(is.null(n.cores)) {
-        n.cores <- detectCores() - 1
+        n.cores <- parallel::detectCores() - 1
     }
 
     matrix.1 <- as.matrix(as.character(matAp))
@@ -150,9 +150,9 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
       pkgs = pkgs[!(pkgs %in% c('base','.GlobalEnv'))]
     }
       
-    if (n.cores == 1) '%oper%' <- foreach::'%do%'
+    if (n.cores == 1) '%oper%' <- foreach::`%do%`
     else { 
-        '%oper%' <- foreach::'%dopar%'
+        '%oper%' <- foreach::`%dopar%`
         cl <- snow::makeCluster(n.cores,type = 'SOCK')
         registerDoSNOW(cl)
         on.exit(stopCluster(cl))
@@ -164,7 +164,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
     opts <- list(progress = progress)
     
     temp.f <- foreach(i = 1:nrow(do), .packages = c("stringdist", "Matrix",pkgs),.export = exports,
-                      options.snow=opts) %oper% { 
+                      .options.snow=opts) %oper% { 
         r1 <- do[i, 1]
         r2 <- do[i, 2]
         #if(i %% 100 == 0) setTxtProgressBar(pb,i)

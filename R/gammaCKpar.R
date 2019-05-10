@@ -172,7 +172,7 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
     opts <- list(progress = progress)
     
     temp.f <- foreach(i = 1:nrow(do), .packages = c("stringdist", "Matrix",pkgs),.export = exports,
-                      options.snow=opts) %oper% { 
+                      .options.snow=opts) %oper% { 
         r1 <- do[i, 1]
         r2 <- do[i, 2]
         #if(i %% 100 == 0) setTxtProgressBar(pb,value = i)
