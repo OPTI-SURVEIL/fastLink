@@ -23,10 +23,13 @@ find_dependencies = function(f,drops = NULL,lyr = 1){
   
   calls = calls[!(calls %in% drops)]
   
+  if(length(calls)==0) return(list(depends = data.table::data.table(calls = character(0),
+                                                                    pkgs = character(0)),
+                                   missing = character(0)))
   drops = c(drops,calls)
   
   fcalls = sapply(calls,function(x) try(get(x),silent = T))
-  missing = unlist(sapply(fcalls,function(x) any(is.character(x))))
+  missing = sapply(fcalls,function(x) any(is.character(x)))
   
   missingcalls = calls[missing]; calls = calls[!missing];fcalls = fcalls[!missing]
   prims = sapply(fcalls,is.primitive)
