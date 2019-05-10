@@ -146,10 +146,21 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
 
     do <- expand.grid(1:n.slices2, 1:n.slices1)
     
+    exports = pkgs = character(0)
+    
+    if(is.function(method)){
+      deps = find_dependencies(method)
+      exports = deps$depends$calls[sapply(res$depends$pkgs,function(x) '.GlobalEnv' %in% x)]
+      
+      pkgs = unique(unlist(deps$depends$pkgs))
+      pkgs = pkgs[!(pkgs %in% c('base','.GlobalEnv'))]
+    }
+    
+    
     if (n.cores == 1) '%oper%' <- foreach::'%do%'
     else { 
         '%oper%' <- foreach::'%dopar%'
-        cl <- makeCluster(n.cores,outfile='')
+        cl <- snow::makeCluster(n.cores,outfile='')
         registerDoSNOW(cl)
         on.exit(stopCluster(cl))
     }
@@ -160,9 +171,7 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
     
     opts <- list(progress = progress)
     
-    temp.f <- foreach(i = 1:nrow(do), #this is a bit of a clunky solution (just exporting all functions and packages), may want to try for more elegant approach in future
-                      .packages = c("stringdist", "Matrix",gsub('package:','',grep('package',search(),value = T))),
-                      .export = as.character(lsf.str(envir = globalenv())),
+    temp.f <- foreach(i = 1:nrow(do), .packages = c("stringdist", "Matrix",pkgs),.export = exports,
                       options.snow=opts) %oper% { 
         r1 <- do[i, 1]
         r2 <- do[i, 2]
