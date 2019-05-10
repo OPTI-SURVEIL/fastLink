@@ -120,9 +120,11 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
         if(!is.list(m[[1]])){
           x <- as.matrix(m[[1]])
           e <- as.matrix(y[[1]])
+          nr = nrow(e)
         }else{
           x = m[[1]]
           e = y[[1]]
+          nr = length(e)
         } 
         
         if(is.function(strdist)){
