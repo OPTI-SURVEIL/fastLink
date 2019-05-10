@@ -160,7 +160,7 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
     if (n.cores == 1) '%oper%' <- foreach::'%do%'
     else { 
         '%oper%' <- foreach::'%dopar%'
-        cl <- makeCluster(n.cores,outfile='')
+        cl <- snow::makeCluster(n.cores,type = 'SOCK')
         registerDoSNOW(cl)
         on.exit(stopCluster(cl))
     }

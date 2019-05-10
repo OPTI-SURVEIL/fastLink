@@ -153,7 +153,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
     if (n.cores == 1) '%oper%' <- foreach::'%do%'
     else { 
         '%oper%' <- foreach::'%dopar%'
-        cl <- makeCluster(n.cores)
+        cl <- snow::makeCluster(n.cores,type = 'SOCK')
         registerDoSNOW(cl)
         on.exit(stopCluster(cl))
     }
