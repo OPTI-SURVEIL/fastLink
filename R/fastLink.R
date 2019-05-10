@@ -18,9 +18,14 @@
 #' @param stringdist.match A vector of variable names indicating which variables
 #'   should use string distance matching. Must be a subset of 'varnames' and
 #'   must not be present in 'numeric.match'.
+#' @param string.transform An optional function returning a transformation or
+#'   list of transformation of the input strings
+#' @param string.transform.args A list of arguments to the provided string transformation function
+#' 
 #' @param stringdist.method String distance method for calculating similarity,
 #'   options are: "jw" Jaro-Winkler (Default), "jaro" Jaro, and "lv" Edit. May
-#'   also be a function for custom methods. If a function is given, the first two arguments should correspond to 
+#'   also be a function for custom methods. If a function is given, the first
+#'   two arguments should correspond to the strings to be compared
 #' @param stringdist.args List of arguments to be provided to stringdist.method
 #'   if a custom function is used.
 #' @param numeric.match A vector of variable names indicating which variables
@@ -120,6 +125,8 @@
 #' @export
 fastLink <- function(dfA, dfB, varnames,
                      stringdist.match = NULL, 
+                     string.transform = NULL,
+                     string.transform.args = NULL,
                      stringdist.method = "jw",
                      stringdist.args = NULL,
                      numeric.match = NULL, 
@@ -326,12 +333,12 @@ fastLink <- function(dfA, dfB, varnames,
         if(stringdist.match[i]){
             if(partial.match[i]){
                 gammalist[[i]] <- gammaCKpar(
-                    dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a, cut.p = cut.p, method = stringdist.method, 
-                    method.args = stringdist.args, w = jw.weight, n.cores = n.cores
-                )
+                    dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a, cut.p = cut.p, method = stringdist.method, transform = string.transform,
+                    transform.args = string.transform.args,method.args = stringdist.args, w = jw.weight, n.cores = n.cores)
             }else{
                 gammalist[[i]] <- gammaCK2par(dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a, 
-                                              method = stringdist.method, 
+                                              method = stringdist.method, transform = string.transform,
+                                              transform.args = string.transform.args,
                                               method.args = stringdist.args,
                                               w = jw.weight, n.cores = n.cores)
             }

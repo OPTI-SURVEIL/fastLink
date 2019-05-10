@@ -10,6 +10,9 @@
 #' @param matBp vector storing the comparison field in data set 2
 #' @param n.cores Number of cores to parallelize over. Default is NULL.
 #' @param cut.a Lower bound for full match, ranging between 0 and 1. Default is 0.92
+#' #' @param transform An optional function returning transformed strings or a list of transformed strings. 
+#' First argument should be the strings to be transformed
+#' @param transform.args An optional list of arguments to the transform function
 #' @param method String distance method, options are: "jw" Jaro-Winkler (Default), "jaro" Jaro, and "lv" Edit. 
 #' May also be passed as a custom function with argument list stringdist.args. The first two arguments of 
 #' any custom function provided should be the strings to be compared
@@ -33,7 +36,8 @@
 ## in parallel
 ## ------------------------
 
-gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw", method.args = NULL, w = .10) {
+gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, transform = NULL,
+                        transform.args = NULL,method = "jw", method.args = NULL, w = .10) {
 
     if(any(class(matAp) %in% c("tbl_df", "data.table"))){
         matAp <- as.data.frame(matAp)[,1]
@@ -78,6 +82,11 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
 
     u.values.1 <- unique(matrix.1)
     u.values.2 <- unique(matrix.2)
+    
+    if(!is.null(transform)){
+      u.trans.1 = do.call(transform, c(list(u.values.1), transform.args))
+      u.trans.2 = do.call(transform, c(list(u.values.2), transform.args))
+    }
 
     n.slices1 <- max(round(length(u.values.1)/(300), 0), 1) 
     n.slices2 <- max(round(length(u.values.2)/(300), 0), 1) 
@@ -90,11 +99,19 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
     n.cores <- min(n.cores, n.slices1 * n.slices2)
     
     for(i in 1:n.slices2) {
+      if(is.null(transform)){
         temp.1[[i]] <- list(u.values.2[(limit.1[i]+1):limit.1[i+1]], limit.1[i])
+      }else{
+        temp.1[[i]] <- list(u.trans.2[(limit.1[i]+1):limit.1[i+1]], limit.1[i])
+      }
     }
-
+    
     for(i in 1:n.slices1) {
+      if(is.null(transform)){
         temp.2[[i]] <- list(u.values.1[(limit.2[i]+1):limit.2[i+1]], limit.2[i])
+      }else{
+        temp.2[[i]] <- list(u.trans.1[(limit.2[i]+1):limit.2[i+1]], limit.2[i])
+      }
     }
 
     stringvec <- function(m, y, cut, strdist = method, p1 = w) {
@@ -104,7 +121,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
         if(is.function(strdist)){
           t <- do.call(method,c(list(e, x), method.args))
           t[ t < cut ] <- 0
-          t <- Matrix(t, sparse = T, nrow = length(e))
+          t <- Matrix(t, sparse = T, nrow = nrow(e))
         }else{
           if(strdist == "jw") {
             t <- 1 - stringdistmatrix(e, x, method = "jw", p = p1, nthread = 1)
@@ -143,10 +160,13 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
     exports = pkgs = character(0)
     
     if(is.function(method)){
-      deps = find_dependencies(method)
-      exports = deps$depends$calls[sapply(deps$depends$pkgs,function(x) '.GlobalEnv' %in% x)]
+      depsm = find_dependencies(method)
+      depst = find_dependencies(transform)
       
-      pkgs = unique(unlist(deps$depends$pkgs))
+      exports = unique(c(depsm$depends$calls[sapply(depsm$depends$pkgs,function(x) '.GlobalEnv' %in% x)],
+                         depst$depends$calls[sapply(depst$depends$pkgs,function(x) '.GlobalEnv' %in% x)]))
+      
+      pkgs = unique(c(unlist(depsm$depends$pkgs),unlist(depst$depends$pkgs)))
       pkgs = pkgs[!(pkgs %in% c('base','.GlobalEnv'))]
     }
       
@@ -158,7 +178,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
         on.exit(stopCluster(cl))
     }
     
-    pb = txtProgressBar(0,nrow(do),style = 3)
+    pb = txtProgressBar(0,nrow(do),style = 1)
     
     progress <- function(n) setTxtProgressBar(pb, n)
     opts <- list(progress = progress)
@@ -170,7 +190,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, method = "jw
         #if(i %% 100 == 0) setTxtProgressBar(pb,i)
         stringvec(temp.1[[r1]], temp.2[[r2]], cut.a)
     }
-
+    close(pb)
     gc()
 
     reshape2 <- function(s) { s[[1]] }
