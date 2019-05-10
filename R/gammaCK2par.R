@@ -128,7 +128,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, transform = 
         if(is.function(strdist)){
           t <- do.call(method,c(list(e, x), method.args))
           t[ t < cut ] <- 0
-          t <- Matrix(t, sparse = T, nrow = nrow(e))
+          t <- Matrix(t, sparse = T, nrow = nr)
         }else{
           if(strdist == "jw") {
             t <- 1 - stringdistmatrix(e, x, method = "jw", p = p1, nthread = 1)
