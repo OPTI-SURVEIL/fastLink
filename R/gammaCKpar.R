@@ -104,7 +104,7 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
       if(is.null(transform)){
         temp.1[[i]] <- list(u.values.2[(limit.1[i]+1):limit.1[i+1]], limit.1[i])
       }else{
-        temp.1[[i]] <- list(u.trans.2[(limit.1[i]+1):limit.1[i+1]], limit.1[i])
+        temp.1[[i]] <- list(lapply(u.trans.2, '[',(limit.1[i]+1):limit.1[i+1]), limit.1[i])
       }
     }
 
@@ -112,13 +112,15 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
       if(is.null(transform)){
         temp.2[[i]] <- list(u.values.1[(limit.2[i]+1):limit.2[i+1]], limit.2[i])
       }else{
-        temp.2[[i]] <- list(u.trans.1[(limit.2[i]+1):limit.2[i+1]], limit.2[i])
+        temp.2[[i]] <- list(lapply(u.trans.1,'[',(limit.2[i]+1):limit.2[i+1]), limit.2[i])
       }
     }
 
     stringvec <- function(m, y, cut, strdist = method, p1 = w) {
-        x <- as.matrix(m[[1]])
-        e <- as.matrix(y[[1]])
+        if(!is.list(m[[1]])){
+          x <- as.matrix(m[[1]])
+          e <- as.matrix(y[[1]])
+        }
         
         if(is.function(strdist)){
           t <- do.call(method,c(list(e, x), method.args))
