@@ -122,7 +122,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, transform = 
       }else{
         x = m[[1]]
         e = y[[1]]
-        nr = length(e)
+        nr = length(e[[1]])
       }     
         
         if(is.function(strdist)){
