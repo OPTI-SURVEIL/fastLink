@@ -115,13 +115,14 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
         if(is.list(vals)){
           x = lapply(vals,'[',inds[,1])
           e = lapply(vals,'[',inds[,2])
+          names(x) = names(e) = names(u.trans.1)
         }else{
           x = as.matrix(vals[inds[,1],])
           e = as.matrix(vals[inds[,2],])
         }
         
         if(is.function(strdist)){
-          t <- do.call(method,c(list(e, x), method.args))
+          t <- do.call(strdist,c(list(e, x), method.args))
           t[ t < cut ] <- 0
           t <- Matrix(t, sparse = T)
         }else{
@@ -214,7 +215,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
         }     
         
         if(is.function(strdist)){
-          t <- do.call(method,c(list(e, x), method.args))
+          t <- do.call(strdist,c(list(e, x), method.args))
           t[ t < cut ] <- 0
           t <- Matrix(t, sparse = T, nrow = nr)
         }else{
