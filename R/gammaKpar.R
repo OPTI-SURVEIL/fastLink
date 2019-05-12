@@ -8,6 +8,7 @@
 #' @param matBp vector storing the comparison field in data set 2
 #' @param gender Whether the matching variable is gender. Will override
 #' standard warnings of missingness/nonvariability. Default is FALSE.
+#' @param dedupe Logical indicator for whether internal linkage and duplication is taking place
 #' @param n.cores Number of cores to parallelize over. Default is NULL.
 #'
 #' @return \code{gammaKpar} returns a list with the indices corresponding to each
@@ -27,7 +28,7 @@
 ## in parallel
 ## ------------------------
 
-gammaKpar <- function(matAp, matBp, gender = FALSE, n.cores = NULL) {
+gammaKpar <- function(matAp, matBp, gender = FALSE, dedupe = F,n.cores = NULL) {
 
     ## For visible bindings
     i <- NULL
