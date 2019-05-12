@@ -26,7 +26,7 @@ std::vector< std::vector<arma::vec> > m_func_par(const std::vector< std::vector<
                                                  const arma::vec limit1,const arma::vec limit2, 
                                                  const arma::vec nlim1, const arma::vec nlim2, 
                                                  const arma::mat ind, const arma::vec listid, 
-                                                 const std::vector< arma::vec<bool>> identical,
+                                                 const std::vector< std::vector<bool>> identical,
                                                  const bool dedupe, const bool matchesLink, 
                                                  const int threads);
 RcppExport SEXP _fastLink_m_func_par(SEXP tempSEXP, SEXP ptempSEXP, SEXP natempSEXP, 
@@ -46,7 +46,7 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const arma::vec >::type nlim2(nlim2SEXP);
     Rcpp::traits::input_parameter< const arma::mat >::type ind(indSEXP);
     Rcpp::traits::input_parameter< const arma::vec >::type listid(listidSEXP);
-    Rcpp::traits::input_parameter< const std::vector< arma::vec<bool> > >::type identical(identicalSEXP);
+    Rcpp::traits::input_parameter< const std::vector< std::vector<bool> > >::type identical(identicalSEXP);
     Rcpp::traits::input_parameter< const bool >::type dedupe(dedupeSEXP);
     Rcpp::traits::input_parameter< const bool >::type matchesLink(matchesLinkSEXP);
     Rcpp::traits::input_parameter< const int >::type threads(threadsSEXP);
