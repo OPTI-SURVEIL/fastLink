@@ -54,8 +54,8 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
           for(i = 0; i < temp0.n_elem; i++){
             for(j = 0; j < temp1.n_elem; j++){
               int i_ = temp0[i]; int j_ = temp1[j];
-              index_out(rowcount,0) = min(i_, j_);
-              index_out(rowcount,1) = max(i_, j_);
+              index_out(rowcount,0) = std::min(i_, j_);
+              index_out(rowcount,1) = std::max(i_, j_);
               rowcount++;
             }
           }
@@ -227,7 +227,7 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
       //j_hat = i_hat + lowerlim[0]-lowerlim[1] + 1: end  
       
       for(j = 0; j < nas_a.size(); j++){
-        for(k = max(0.0,nas_a[j] + lowerlims(0) - lowerlims(1)); k < nobs_b; k++){
+        for(k = std::max(0.0,nas_a[j] + lowerlims(0) - lowerlims(1)); k < nobs_b; k++){
           tripletList.push_back(Trip(nas_a[j]-1, k, val));
         }
       }
