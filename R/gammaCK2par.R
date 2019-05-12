@@ -72,7 +72,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
     
     
     if(is.null(n.cores)) {
-        n.cores <- parallel::detectCores() - 1
+        n.cores <- detectCores() - 1
     }
 
     matrix.1 <- as.matrix(as.character(matAp))
