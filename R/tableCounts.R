@@ -8,6 +8,7 @@
 #' gammaCKpar. 
 #' @param nobs.a number of observations in dataset 1
 #' @param nobs.b number of observations in dataset 2
+#' @param dedupe logical - indicator for internal linkage / deduplication of a single dataset
 #' @param n.cores Number of cores to parallelize over. Default is NULL.
 #'
 #' @author Ted Enamorado <ted.enamorado@gmail.com>, Ben Fifield <benfifield@gmail.com>, and Kosuke Imai
@@ -36,7 +37,7 @@
 ## functions that does the trick
 ## ------------------------
 
-tableCounts <- function(gammalist, nobs.a, nobs.b, n.cores = NULL) {
+tableCounts <- function(gammalist, nobs.a, nobs.b, dedupe = FALSE, n.cores = NULL) {
     
     ## Lists of indices:
     ##     temp - exact
@@ -45,13 +46,15 @@ tableCounts <- function(gammalist, nobs.a, nobs.b, n.cores = NULL) {
     temp <- vector(mode = "list", length = length(gammalist))
     ptemp <- vector(mode = "list", length = length(gammalist))
     natemp <- vector(mode = "list", length = length(gammalist))
-
+    identical <- vector(mode = "list", length = length(gammalist))
+    
     for(i in 1:length(gammalist)){
         temp[[i]] <- gammalist[[i]]$matches2
         if(!is.null(gammalist[[i]]$matches1)) {
             ptemp[[i]] <- gammalist[[i]]$matches1
         }
         natemp[[i]] <- gammalist[[i]]$nas
+        identical[[i]] <- gammalist[[i]]$.identical
     }
 
     ## Slicing the data:
@@ -93,6 +96,8 @@ tableCounts <- function(gammalist, nobs.a, nobs.b, n.cores = NULL) {
                        limit1 = limit.1, limit2 = limit.2,
                        nlim1 = n.lim.1, nlim2 = n.lim.2,
                        ind = as.matrix(t(ind[i, ])), listid = rep(1, 2),
+                       identical = identical,
+                       dedupe = dedupe,
                        matchesLink = FALSE, threads = 1)
       	}
         
@@ -114,6 +119,8 @@ tableCounts <- function(gammalist, nobs.a, nobs.b, n.cores = NULL) {
                              limit1 = limit.1, limit2 = limit.2,
                              nlim1 = n.lim.1, nlim2 = n.lim.2,
                              ind = ind, listid = rep(1, 2),
+                             identical = identical,
+                             dedupe = dedupe,
                              matchesLink = FALSE, threads = nc)
 
         gammas_mat <- lapply(gammas, function(x){
@@ -127,6 +134,10 @@ tableCounts <- function(gammalist, nobs.a, nobs.b, n.cores = NULL) {
 
     counts.f <- as.matrix(tapply(as.numeric(temp[, 2]), temp[, 1], sum))
     counts.d <- cbind( as.numeric(row.names(counts.f)), counts.f)
+    
+    if(dedupe){
+      counts.d[counts.d[,1] == 0,2] = counts.d[counts.d[,1] == 0,2] - nobs.a * (nobs.a + 1)/2
+    }
     colnames(counts.d) <- c("pattern.id", "count")
 
     ## Merge Counts
