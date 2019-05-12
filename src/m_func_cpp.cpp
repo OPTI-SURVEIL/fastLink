@@ -42,7 +42,8 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
       if(dedupe == true){
         if(identical == true){
           index_out.set_size(temp0.n_elem * (temp0.n_elem - 1) / 2, 2);
-          for(i = 0; i < (temp0.nelem - 1); i++){
+          int ilim = temp0.nelem - 1;
+          for(i = 0; i < ilim; i++){
             for(j = i + 1; j < temp0.nelem; j ++){
               index_out(rowcount,0) = temp0[i];
               index_out(rowcount,1) = temp1[j];
