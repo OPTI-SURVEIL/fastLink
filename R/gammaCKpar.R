@@ -108,7 +108,8 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
       ncomps = length(u.values.1)^2/2 + length(u.values.1)/2
       
       n.slices = max(round(ncomps/(300)^2, 0), 1)
-      limit = round(quantile(0:ncomps, p = seq(0, 1, 1/n.slices)), 0)
+      limit = round(seq(0,ncomps,ncomps/n.slices),0)
+      
       
       n.cores2 <- min(n.cores, n.slices)
       
