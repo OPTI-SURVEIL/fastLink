@@ -172,10 +172,10 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
       
       opts <- list(progress = progress)
       uvs = ifelse(is.null(transform), unique.values.1, u.trans.1)
-      
+      n.u = length(u.values.1)
       temp.f <- foreach(i = 1:n.slices, .packages = c("stringdist", "Matrix",pkgs),.export = exports,
                         .options.snow=opts) %oper% { 
-                          inds = combo_deindexer((limit[i]+1):limit[i+1],length(uvs))
+                          inds = combo_deindexer((limit[i]+1):limit[i+1],n.u)
                           
                           stringvec(uvs, inds, c(cut.a, cut.p))
                         }
