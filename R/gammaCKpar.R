@@ -175,7 +175,7 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
       
       temp.f <- foreach(i = 1:n.slices, .packages = c("stringdist", "Matrix",pkgs),.export = exports,
                         .options.snow=opts) %oper% { 
-                          inds = combo_deindexer((limit[i]+1):limit[i+1],length(u.values.1))
+                          inds = combo_deindexer((limit[i]+1):limit[i+1],length(uvs))
                           
                           stringvec(uvs, inds, c(cut.a, cut.p))
                         }
