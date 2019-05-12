@@ -32,7 +32,7 @@ std::vector< std::vector<arma::vec> > m_func_par(const std::vector< std::vector<
 RcppExport SEXP _fastLink_m_func_par(SEXP tempSEXP, SEXP ptempSEXP, SEXP natempSEXP, 
                                      SEXP limit1SEXP, SEXP limit2SEXP, SEXP nlim1SEXP, 
                                      SEXP nlim2SEXP, SEXP indSEXP, SEXP listidSEXP, 
-                                     SEXP identical, SEXP dedupe,
+                                     SEXP identicalSEXP, SEXP dedupeSEXP,
                                      SEXP matchesLinkSEXP, SEXP threadsSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
