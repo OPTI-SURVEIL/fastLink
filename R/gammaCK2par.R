@@ -10,7 +10,8 @@
 #' @param matBp vector storing the comparison field in data set 2
 #' @param n.cores Number of cores to parallelize over. Default is NULL.
 #' @param cut.a Lower bound for full match, ranging between 0 and 1. Default is 0.92
-#' #' @param transform An optional function returning transformed strings or a list of transformed strings. 
+#' @param dedupe Logical. Whether internal linkage or linkage between two frames is being performed.
+#' @param transform An optional function returning transformed strings or a list of transformed strings. 
 #' First argument should be the strings to be transformed
 #' @param transform.args An optional list of arguments to the transform function
 #' @param method String distance method, options are: "jw" Jaro-Winkler (Default), "jaro" Jaro, and "lv" Edit. 
@@ -36,7 +37,7 @@
 ## in parallel
 ## ------------------------
 
-gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, transform = NULL,
+gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, transform = NULL,
                         transform.args = NULL,method = "jw", method.args = NULL, w = .10) {
 
     if(any(class(matAp) %in% c("tbl_df", "data.table"))){
@@ -88,42 +89,128 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, transform = 
       u.trans.2 = do.call(transform, c(list(u.values.2), transform.args))
     }
 
-    n.slices1 <- max(round(length(u.values.1)/(300), 0), 1) 
-    n.slices2 <- max(round(length(u.values.2)/(300), 0), 1) 
-
-    limit.1 <- round(quantile((0:nrow(u.values.2)), p = seq(0, 1, 1/n.slices2)), 0)
-    limit.2 <- round(quantile((0:nrow(u.values.1)), p = seq(0, 1, 1/n.slices1)), 0)
-
-    temp.1 <- temp.2 <- list()
-
-    n.cores <- min(n.cores, n.slices1 * n.slices2)
+    exports = pkgs = character(0)
     
-    for(i in 1:n.slices2) {
-      if(is.null(transform)){
-        temp.1[[i]] <- list(u.values.2[(limit.1[i]+1):limit.1[i+1]], limit.1[i])
-      }else{
-        temp.1[[i]] <- list(lapply(u.trans.2, '[',(limit.1[i]+1):limit.1[i+1]), limit.1[i])
-      }
+    if(is.function(method)){
+      depsm = find_dependencies(method)
+      depst = find_dependencies(transform)
+      
+      exports = unique(c(depsm$depends$calls[sapply(depsm$depends$pkgs,function(x) '.GlobalEnv' %in% x)],
+                         depst$depends$calls[sapply(depst$depends$pkgs,function(x) '.GlobalEnv' %in% x)]))
+      
+      pkgs = unique(c(unlist(depsm$depends$pkgs),unlist(depst$depends$pkgs)))
+      pkgs = pkgs[!(pkgs %in% c('base','.GlobalEnv'))]
     }
     
-    for(i in 1:n.slices1) {
-      if(is.null(transform)){
-        temp.2[[i]] <- list(u.values.1[(limit.2[i]+1):limit.2[i+1]], limit.2[i])
-      }else{
-        temp.2[[i]] <- list(lapply(u.trans.1,'[',(limit.2[i]+1):limit.2[i+1]), limit.2[i])
+    if(dedupe){
+      ncomps = length(u.values.1)^2/2 + length(u.values.1)/2
+      
+      n.slices = max(round(ncomps/(300)^2, 0), 1)
+      limit = round(quantile(0:ncomps, p = seq(0, 1, 1/n.slices)), 0)
+      
+      n.cores2 <- min(n.cores, n.slices)
+      
+      stringvec <- function(vals, inds, cut, strdist = method, p1 = w) {
+        if(is.list(vals)){
+          x = lapply(vals,'[',inds[,1])
+          e = lapply(vals,'[',inds[,2])
+        }else{
+          x = as.matrix(vals[inds[,1],])
+          e = as.matrix(vals[inds[,2],])
+        }
+        
+        if(is.function(strdist)){
+          t <- do.call(method,c(list(e, x), method.args))
+          t[ t < cut ] <- 0
+          t <- Matrix(t, sparse = T)
+        }else{
+          if(strdist == "jw") {
+            t <- 1 - stringdistmatrix(e, x, method = "jw", p = p1, nthread = 1)
+            t[ t < cut ] <- 0
+            t <- Matrix(as.numeric(t), sparse = T)
+          }
+          
+          if(strdist == "jaro") {
+            t <- 1 - stringdistmatrix(e, x, method = "jw", nthread = 1)
+            t[ t < cut ] <- 0
+            t <- Matrix(as.numeric(t), sparse = T)
+          }
+          
+          if(strdist == "lv") {
+            t <- stringdistmatrix(e, x, method = method, nthread = 1)
+            t.1 <- nchar(as.matrix(e))
+            t.2 <- nchar(as.matrix(x))
+            o <- t(apply(t.1, 1, function(w){ ifelse(w >= t.2, w, t.2)}))
+            t <- 1 - t * (1/o)
+            t[ t < cut ] <- 0
+            t <- Matrix(as.numeric(t), sparse = T)
+          }
+        }
+        
+        t@x[t@x >= cut] <- 2; gc()       	
+        indexes.2 <- inds[which(t == 2),]
+        list(indexes.2)
       }
-    }
-    
-    stringvec <- function(m, y, cut, strdist = method, p1 = w) {
-      if(!is.list(m[[1]])){
-        x <- as.matrix(m[[1]])
-        e <- as.matrix(y[[1]])
-        nr = nrow(e)
-      }else{
-        x = m[[1]]
-        e = y[[1]]
-        nr = length(e[[1]])
-      }     
+      
+      if (n.cores2 == 1) '%oper%' <- foreach::'%do%'
+      else { 
+        '%oper%' <- foreach::'%dopar%'
+        cl <- snow::makeCluster(n.cores2,type = 'SOCK')
+        registerDoSNOW(cl)
+        on.exit(stopCluster(cl))
+      }
+      
+      pb = txtProgressBar(0,nrow(do),style = 1)
+      
+      progress <- function(n) setTxtProgressBar(pb, n)
+      
+      opts <- list(progress = progress)
+      uvs = ifelse(is.null(transform), unique.values.1, u.trans.1)
+      
+      temp.f <- foreach(i = 1:n.slices, .packages = c("stringdist", "Matrix",pkgs),.export = exports,
+                        .options.snow=opts) %oper% { 
+                          inds = combo_deindexer((limit[i]+1):limit[i+1],length(u.values.1))
+                          
+                          stringvec(uvs, inds, cut.a)
+                        }
+      close(pb)
+    }else{
+      n.slices1 <- max(round(length(u.values.1)/(300), 0), 1) 
+      n.slices2 <- max(round(length(u.values.2)/(300), 0), 1) 
+      
+      limit.1 <- round(quantile((0:nrow(u.values.2)), p = seq(0, 1, 1/n.slices2)), 0)
+      limit.2 <- round(quantile((0:nrow(u.values.1)), p = seq(0, 1, 1/n.slices1)), 0)
+      
+      temp.1 <- temp.2 <- list()
+      
+      n.cores <- min(n.cores, n.slices1 * n.slices2)
+      
+      for(i in 1:n.slices2) {
+        if(is.null(transform)){
+          temp.1[[i]] <- list(u.values.2[(limit.1[i]+1):limit.1[i+1]], limit.1[i])
+        }else{
+          temp.1[[i]] <- list(lapply(u.trans.2, '[',(limit.1[i]+1):limit.1[i+1]), limit.1[i])
+        }
+      }
+      
+      for(i in 1:n.slices1) {
+        if(is.null(transform)){
+          temp.2[[i]] <- list(u.values.1[(limit.2[i]+1):limit.2[i+1]], limit.2[i])
+        }else{
+          temp.2[[i]] <- list(lapply(u.trans.1,'[',(limit.2[i]+1):limit.2[i+1]), limit.2[i])
+        }
+      }
+      
+      stringvec <- function(m, y, cut, strdist = method, p1 = w) {
+        if(!is.list(m[[1]])){
+          x <- as.matrix(m[[1]])
+          e <- as.matrix(y[[1]])
+          nr = nrow(e)
+        }else{
+          x = m[[1]]
+          e = y[[1]]
+          nr = length(e[[1]])
+        }     
         
         if(is.function(strdist)){
           t <- do.call(method,c(list(e, x), method.args))
@@ -160,51 +247,42 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, transform = 
         indexes.2[, 1] <- indexes.2[, 1] + slice.2
         indexes.2[, 2] <- indexes.2[, 2] + slice.1
         list(indexes.2)
-    }
-
-    do <- expand.grid(1:n.slices2, 1:n.slices1)
-    
-    exports = pkgs = character(0)
-    
-    if(is.function(method)){
-      depsm = find_dependencies(method)
-      depst = find_dependencies(transform)
+      }
       
-      exports = unique(c(depsm$depends$calls[sapply(depsm$depends$pkgs,function(x) '.GlobalEnv' %in% x)],
-                         depst$depends$calls[sapply(depst$depends$pkgs,function(x) '.GlobalEnv' %in% x)]))
+      do <- expand.grid(1:n.slices2, 1:n.slices1)
       
-      pkgs = unique(c(unlist(depsm$depends$pkgs),unlist(depst$depends$pkgs)))
-      pkgs = pkgs[!(pkgs %in% c('base','.GlobalEnv'))]
-    }
-      
-    if (n.cores == 1) '%oper%' <- foreach::`%do%`
-    else { 
+      if (n.cores == 1) '%oper%' <- foreach::`%do%`
+      else { 
         '%oper%' <- foreach::`%dopar%`
         cl <- snow::makeCluster(n.cores,type = 'SOCK')
         registerDoSNOW(cl)
         on.exit(stopCluster(cl))
+      }
+      
+      pb = txtProgressBar(0,nrow(do),style = 1)
+      
+      progress <- function(n) setTxtProgressBar(pb, n)
+      opts <- list(progress = progress)
+      
+      temp.f <- foreach(i = 1:nrow(do), .packages = c("stringdist", "Matrix",pkgs),.export = exports,
+                        .options.snow=opts) %oper% { 
+                          r1 <- do[i, 1]
+                          r2 <- do[i, 2]
+                          #if(i %% 100 == 0) setTxtProgressBar(pb,i)
+                          stringvec(temp.1[[r1]], temp.2[[r2]], cut.a)
+                        }
+      close(pb)
     }
     
-    pb = txtProgressBar(0,nrow(do),style = 1)
-    
-    progress <- function(n) setTxtProgressBar(pb, n)
-    opts <- list(progress = progress)
-    
-    temp.f <- foreach(i = 1:nrow(do), .packages = c("stringdist", "Matrix",pkgs),.export = exports,
-                      .options.snow=opts) %oper% { 
-        r1 <- do[i, 1]
-        r2 <- do[i, 2]
-        #if(i %% 100 == 0) setTxtProgressBar(pb,i)
-        stringvec(temp.1[[r1]], temp.2[[r2]], cut.a)
-    }
-    close(pb)
     gc()
 
     reshape2 <- function(s) { s[[1]] }
     temp.2 <- lapply(temp.f, reshape2)
 
     indexes.2 <- do.call('rbind', temp.2)
-
+    
+    .identical = indexes.2[,1] == indexes.2[,2]
+    
     ht1 <- new.env(hash=TRUE)
     ht2 <- new.env(hash=TRUE)
 
@@ -244,6 +322,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, transform = 
     out <- list()
     out[["matches2"]] <- final.list2
     out[["nas"]] <- na.list
+    out[['.identical']] = .identical
     class(out) <- c("fastLink", "gammaCK2par")
     
     return(out)

@@ -29,6 +29,7 @@ Imports:
     stringr,
     stringi,
     Rcpp (>= 0.12.7),
+    RcppAlgos,
     FactoClass,
     adagio,
     dplyr,

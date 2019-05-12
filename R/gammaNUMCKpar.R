@@ -11,7 +11,7 @@
 #' @param n.cores Number of cores to parallelize over. Default is NULL.
 #' @param cut.a Lower bound for full match. Default is 1
 #' @param cut.p Lower bound for partial match. Default is 2
-#'
+#' @param dedupe Logical. Whether internal linkage or linkage between two frames is being performed.
 #' @return \code{gammaNUMCKpar} returns a list with the indices corresponding to each
 #' matching pattern, which can be fed directly into \code{tableCounts} and \code{matchesLink}.
 #'
@@ -22,7 +22,7 @@
 #' g1 <- gammaNUMCKpar(dfA$birthyear, dfB$birthyear)
 #' }
 #' @export
-gammaNUMCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 1, cut.p = 2) {
+gammaNUMCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 1, cut.p = 2, dedupe = F) {
 
     if(any(class(matAp) %in% c("tbl_df", "data.table"))){
         matAp <- as.data.frame(matAp)[,1]
@@ -55,37 +55,77 @@ gammaNUMCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 1, cut.p = 2) {
     
     u.values.1 <- unique(matrix.1)
     u.values.2 <- unique(matrix.2)
-
-    n.slices1 <- max(round(length(u.values.1)/(4500), 0), 1) 
-    n.slices2 <- max(round(length(u.values.2)/(4500), 0), 1) 
-
-    limit.1 <- round(quantile((0:nrow(u.values.2)), p = seq(0, 1, 1/n.slices2)), 0)
-    limit.2 <- round(quantile((0:nrow(u.values.1)), p = seq(0, 1, 1/n.slices1)), 0)
-
-    temp.1 <- temp.2 <- list()
-
-    n.cores2 <- min(n.cores, n.slices1 * n.slices2)
     
-    for(i in 1:n.slices2) {
+    if(dedupe){
+      ncomps = length(u.values.1)^2/2 + length(u.values.1)/2
+      
+      n.slices = max(round(ncomps/(4500)^2, 0), 1)
+      limit = round(quantile(0:ncomps, p = seq(0, 1, 1/n.slices)), 0)
+      
+      n.cores2 <- min(n.cores, n.slices)
+      
+      difference <- function(vals,inds, cut) {
+        
+        x <- vals[inds[,1],]
+        e <- vals[inds[,2],]        
+        
+        t <- abs(x-e)
+        t[ t == 0 ] <- cut[1]
+        t[ t > cut[2] ] <- 0
+        t <- Matrix(t, sparse = T)
+        
+        t@x[t@x <= cut[1]] <- cut[2] + 1; gc()       	                
+        t@x[t@x > cut[1] & t@x <= cut[2]] <- 1; gc()      	
+        indexes.2 <- inds[which(t == cut[2] + 1),]
+        indexes.1 <- inds[which(t == 1),]
+        list(indexes.2, indexes.1)
+      }
+      
+      if (n.cores2 == 1) '%oper%' <- foreach::'%do%'
+      else { 
+        '%oper%' <- foreach::'%dopar%'
+        cl <- makeCluster(n.cores2)
+        registerDoParallel(cl)
+        on.exit(stopCluster(cl))
+      }
+      
+      temp.f <- foreach(i = 1:n.slices, .packages = c("Matrix")) %oper% {
+        inds = combo_deindexer((limit[i]+1):limit[i+1],length(u.values.1))
+        
+        difference(u.values.1, inds, c(cut.a,cut.p))
+      }
+      
+    }else{
+      n.slices1 <- max(round(length(u.values.1)/(4500), 0), 1) 
+      n.slices2 <- max(round(length(u.values.2)/(4500), 0), 1) 
+      
+      limit.1 <- round(quantile((0:nrow(u.values.2)), p = seq(0, 1, 1/n.slices2)), 0)
+      limit.2 <- round(quantile((0:nrow(u.values.1)), p = seq(0, 1, 1/n.slices1)), 0)
+      
+      temp.1 <- temp.2 <- list()
+      
+      n.cores2 <- min(n.cores, n.slices1 * n.slices2)
+      
+      for(i in 1:n.slices2) {
         temp.1[[i]] <- list(u.values.2[(limit.1[i]+1):limit.1[i+1]], limit.1[i])
-    }
-
-    for(i in 1:n.slices1) {
+      }
+      
+      for(i in 1:n.slices1) {
         temp.2[[i]] <- list(u.values.1[(limit.2[i]+1):limit.2[i+1]], limit.2[i])
-    }
-
-    difference <- function(m, y, cut) {
+      }
+      
+      difference <- function(m, y, cut) {
         x <- as.matrix(m[[1]])
         e <- as.matrix(y[[1]])        
-
+        
         t <- calcPWDcpp(as.matrix(x), as.matrix(e))
         t[ t == 0 ] <- cut[1]
         t[ t > cut[2] ] <- 0
         t <- Matrix(t, sparse = T)
-
+        
         t@x[t@x <= cut[1]] <- cut[2] + 1; gc()       	                
         t@x[t@x > cut[1] & t@x <= cut[2]] <- 1; gc()       	
-
+        
         slice.1 <- m[[2]]
         slice.2 <- y[[2]]
         indexes.2 <- which(t == cut[2] + 1, arr.ind = T)
@@ -95,24 +135,25 @@ gammaNUMCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 1, cut.p = 2) {
         indexes.1[, 1] <- indexes.1[, 1] + slice.2
         indexes.1[, 2] <- indexes.1[, 2] + slice.1
         list(indexes.2, indexes.1)
-    }
-
-    do <- expand.grid(1:n.slices2, 1:n.slices1)
-
-    if (n.cores2 == 1) '%oper%' <- foreach::'%do%'
-    else { 
+      }
+      
+      do <- expand.grid(1:n.slices2, 1:n.slices1)
+      
+      if (n.cores2 == 1) '%oper%' <- foreach::'%do%'
+      else { 
         '%oper%' <- foreach::'%dopar%'
         cl <- makeCluster(n.cores2)
         registerDoParallel(cl)
         on.exit(stopCluster(cl))
-    }
-
-    temp.f <- foreach(i = 1:nrow(do), .packages = c("Rcpp", "Matrix")) %oper% {
+      }
+      
+      temp.f <- foreach(i = 1:nrow(do), .packages = c("Rcpp", "Matrix")) %oper% {
         r1 <- do[i, 1]
         r2 <- do[i, 2]
         difference(temp.1[[r1]], temp.2[[r2]], c(cut.a, cut.p))
+      }
     }
-
+    
     gc()
 
     reshape2 <- function(s) { s[[1]] }
@@ -123,6 +164,8 @@ gammaNUMCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 1, cut.p = 2) {
     indexes.2 <- do.call('rbind', temp.2)
     indexes.1 <- do.call('rbind', temp.1)
 
+    .identical = indexes.2[,1] == indexes.2[,2]
+    
     n.values.2 <- as.matrix(cbind(u.values.1[indexes.2[, 2]], u.values.2[indexes.2[, 1]]))
     n.values.1 <- as.matrix(cbind(u.values.1[indexes.1[, 2]], u.values.2[indexes.1[, 1]]))
     
@@ -168,6 +211,7 @@ gammaNUMCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 1, cut.p = 2) {
     out[["matches2"]] <- final.list2
     out[["matches1"]] <- final.list1
     out[["nas"]] <- na.list
+    out[[".identical"]] <- .identical
     class(out) <- c("fastLink", "gammaNUMCKpar")
     
     return(out)

@@ -72,7 +72,9 @@ gammaKpar <- function(matAp, matBp, gender = FALSE, n.cores = NULL) {
     u.values.2 <- unique(matrix.2)
 
     matches <- u.values.1[u.values.1 %in% u.values.2]
-
+    
+    .identical = rep(T,length(matches))
+    
     ht1 <- new.env(hash=TRUE)
     ht2 <- new.env(hash=TRUE)
     matches.l <- as.list(matches)
@@ -104,6 +106,7 @@ gammaKpar <- function(matAp, matBp, gender = FALSE, n.cores = NULL) {
     out <- list()
     out[["matches2"]] <- final.list
     out[["nas"]] <- na.list
+    out[['.identical']] <- .identical
     class(out) <- c("fastLink", "gammaKpar")
 
     return(out)

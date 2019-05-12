@@ -334,26 +334,31 @@ fastLink <- function(dfA, dfB, varnames,
             if(partial.match[i]){
                 gammalist[[i]] <- gammaCKpar(
                     dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a, cut.p = cut.p, method = stringdist.method, transform = string.transform,
-                    transform.args = string.transform.args,method.args = stringdist.args, w = jw.weight, n.cores = n.cores)
+                    transform.args = string.transform.args,method.args = stringdist.args, w = jw.weight, n.cores = n.cores,
+                    dedupe = dedupe.df)
             }else{
                 gammalist[[i]] <- gammaCK2par(dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a, 
                                               method = stringdist.method, transform = string.transform,
                                               transform.args = string.transform.args,
                                               method.args = stringdist.args,
-                                              w = jw.weight, n.cores = n.cores)
+                                              w = jw.weight, n.cores = n.cores,
+                                              dedupe = dedupe.df)
             }
         }else if(numeric.match[i]){
             if(partial.match[i]){
                 gammalist[[i]] <- gammaNUMCKpar(
-                    dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a.num, cut.p = cut.p.num, n.cores = n.cores
+                    dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a.num, cut.p = cut.p.num, n.cores = n.cores,
+                    dedupe = dedupe.df
                 )
             }else{
                 gammalist[[i]] <- gammaNUMCK2par(
-                    dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a.num, n.cores = n.cores
+                    dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a.num, n.cores = n.cores,
+                    dedupe = dedupe.df
                 )
             }
         }else{
-            gammalist[[i]] <- gammaKpar(dfA[,varnames[i]], dfB[,varnames[i]], gender = gender.field[i], n.cores = n.cores)
+            gammalist[[i]] <- gammaKpar(dfA[,varnames[i]], dfB[,varnames[i]], gender = gender.field[i], n.cores = n.cores,
+                                        dedupe = dedupe.df)
         }
     }
     end <- Sys.time()
@@ -370,28 +375,29 @@ fastLink <- function(dfA, dfB, varnames,
     ## ------------------------------
     cat("Getting counts for parameter estimation.\n")
     start <- Sys.time()
-    counts <- tableCounts(gammalist, nobs.a = nr_a, nobs.b = nr_b, n.cores = n.cores)
+    counts <- tableCounts(gammalist, nobs.a = nr_a, nobs.b = nr_b, n.cores = n.cores,
+                          dedupe = dedupe.df)
     colnames(counts)[seq_along(varnames)] = varnames
-    if(dedupe.df){
-      #Added correction to remove self-comparisons from internal linkage
-      tempfrm = dfA[,varnames]
-      tempfrm[!is.na(tempfrm)] = 2
-      tempfrm = data.frame(lapply(tempfrm,as.numeric))
-      count_cor = plyr::count(tempfrm)
-      trgtnms = sapply(1:nrow(counts), function(i) paste0(counts[i,seq_along(varnames)],collapse=''))
-      seeknms = sapply(1:nrow(count_cor), function(i) paste0(count_cor[i,seq_along(varnames)],collapse=''))
-      
-      counts[match(seeknms,trgtnms),'counts'] = counts[match(seeknms,trgtnms),'counts'] - count_cor$freq
-      counts = counts[counts[,'counts'] != 0,]
-      counts[,'counts'] = counts[,'counts']/2
-      dropvars = which(apply(counts[,seq_along(varnames)],2,function(v) length(unique(v)) == 1))
-      if(length(dropvars)>0){
-        cat('    Dropping variable(s) [', colnames(counts)[dropvars],'] due to lack of variation \n',sep = '')
-        counts = counts[,-dropvars]
-        varnames = varnames[-dropvars]
-        gammalist = gammalist[-dropvars]
-      } 
-    }
+    # if(dedupe.df){
+    #   #Added correction to remove self-comparisons from internal linkage
+    #   tempfrm = dfA[,varnames]
+    #   tempfrm[!is.na(tempfrm)] = 2
+    #   tempfrm = data.frame(lapply(tempfrm,as.numeric))
+    #   count_cor = plyr::count(tempfrm)
+    #   trgtnms = sapply(1:nrow(counts), function(i) paste0(counts[i,seq_along(varnames)],collapse=''))
+    #   seeknms = sapply(1:nrow(count_cor), function(i) paste0(count_cor[i,seq_along(varnames)],collapse=''))
+    #   
+    #   counts[match(seeknms,trgtnms),'counts'] = counts[match(seeknms,trgtnms),'counts'] - count_cor$freq
+    #   counts = counts[counts[,'counts'] != 0,]
+    #   counts[,'counts'] = counts[,'counts']/2
+    #   dropvars = which(apply(counts[,seq_along(varnames)],2,function(v) length(unique(v)) == 1))
+    #   if(length(dropvars)>0){
+    #     cat('    Dropping variable(s) [', colnames(counts)[dropvars],'] due to lack of variation \n',sep = '')
+    #     counts = counts[,-dropvars]
+    #     varnames = varnames[-dropvars]
+    #     gammalist = gammalist[-dropvars]
+    #   } 
+    # }
     end <- Sys.time()
     if(verbose){
         cat("Getting counts for parameter estimation took", round(difftime(end, start, units = "mins"), 2), "minutes.\n\n")

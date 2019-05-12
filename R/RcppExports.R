@@ -5,7 +5,7 @@ calcPWDcpp <- function(x, y) {
     .Call(`_fastLink_calcPWDcpp`, x, y)
 }
 
-m_func_par <- function(temp, ptemp, natemp, limit1, limit2, nlim1, nlim2, ind, listid, matchesLink = FALSE, threads = 1L) {
-    .Call(`_fastLink_m_func_par`, temp, ptemp, natemp, limit1, limit2, nlim1, nlim2, ind, listid, matchesLink, threads)
+m_func_par <- function(temp, ptemp, natemp, limit1, limit2, nlim1, nlim2, ind, listid, identical, dedupe = F, matchesLink = FALSE, threads = 1L) {
+    .Call(`_fastLink_m_func_par`, temp, ptemp, natemp, limit1, limit2, nlim1, nlim2, ind, listid, identical, dedupe = F, matchesLink, threads)
 }
 
