@@ -357,7 +357,7 @@ std::vector< std::vector<arma::vec> > m_func_par(const std::vector< std::vector<
 						 const arma::vec nlim1, const arma::vec nlim2,
 						 const arma::mat ind,
 						 const arma::vec listid,
-						 const std::vector< arma::vec <bool> > identical,
+						 const std::vector< std::vector <bool> > identical,
 						 const bool dedupe = false,
 						 const bool matchesLink = false,
 						 const int threads = 1){
@@ -369,7 +369,7 @@ std::vector< std::vector<arma::vec> > m_func_par(const std::vector< std::vector<
   int n; int m;
   std::vector< std::vector<arma::vec> > temp_feature;
   std::vector< std::vector<arma::vec> > ptemp_feature;
-  arma::vec <bool> ident_feature;
+  std::vector <bool> ident_feature;
 
   // Declare objects (firstprivate)
   std::vector< std::vector<arma::mat> > templist(temp.size());
