@@ -165,7 +165,7 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
         on.exit(stopCluster(cl))
       }
   
-      pb = txtProgressBar(0,nrow(do),style = 1)
+      pb = txtProgressBar(0,n.slices,style = 1)
       
       progress <- function(n) setTxtProgressBar(pb, n)
       
