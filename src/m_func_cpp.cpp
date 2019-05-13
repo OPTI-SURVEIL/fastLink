@@ -51,16 +51,18 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
             arma::vec temp1_ = temp1.elem(find(s1_bool2 == true));
             
             int i; int j; // Expand grid, declare size of matrix
+            int jlow = 0;
+            
             int rowcount = 0;
             int nrow = 0;
-            arma::uvec
+            
             for(i = 0; i < temp0_.n_elem(); i++){
               nrow += sum(temp1_ > temp0_(i));
             }
             index_out.set_size(nrow, 2);
-            int jlow = 0;
-            for(i_ = 0; i_ < temp0_.n_elem; i_++){
-              while(temp1_(jlow) <= temp0_(i_))
+            
+            for(i = 0; i < temp0_.n_elem; i++){
+              while(temp1_(jlow) <= temp0_(i))
                 jlow++;
             for(j = jlow; j < temp1_.n_elem; j ++){
                 index_out(rowcount,0) = temp0_[i];
