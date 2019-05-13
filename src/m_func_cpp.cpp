@@ -61,7 +61,7 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
             std::vector<int>::iterator jlow;
             for(i = 0; i < temp0_.n_elem; i++)
               jlow = upper_bound(temp1_.begin(), temp1_.end(), temp0_[i]);
-              for(j = jlow; j < temp1_.n_elem; j ++){
+              for(j = std::distance(temp1_.begin(),jlow); j < temp1_.n_elem; j ++){
                 index_out(rowcount,0) = temp0_[i];
                 index_out(rowcount,1) = temp1_[j];
                 rowcount++;
