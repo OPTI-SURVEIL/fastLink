@@ -81,9 +81,16 @@ tableCounts <- function(gammalist, nobs.a, nobs.b, dedupe = FALSE, n.cores = NUL
     ind.j <- 1:n.slices2
     ind <- as.matrix(expand.grid.jc(ind.i, ind.j))
 
-    if(dedupe)
-      ind = matrix(ind[which(ind[,1]<=ind[,2]),],ncol = 2) #removing empty blocks for internal linkage represented by upper right tri matrix
-    #then number of excess zeroes should be n.lim.1^2/2 + n.lim.1/2 for all entries where ind[,1] = ind[,2]
+    if(dedupe){
+      keep_rows = which(ind[,1]<=ind[,2])
+      ind = matrix(ind[keep_rows,],ncol = 2) #removing empty blocks for internal linkage represented by upper right tri matrix
+      #then number of excess zeroes should be n.lim.1^2/2 + n.lim.1/2 for all entries where ind[,1] = ind[,2]v
+      
+      ez_rows = which(ind[,1] == ind[,2])
+      excess_zeroes = sum((n.lim.1[ind[ez_rows,1]] * (n.lim.1[ind[ez_rows,1]] + 1))/2)
+    }
+      
+    
     
     ## Run main function
     if(Sys.info()[['sysname']] == 'Darwin') {
@@ -140,7 +147,7 @@ tableCounts <- function(gammalist, nobs.a, nobs.b, dedupe = FALSE, n.cores = NUL
     counts.d <- cbind( as.numeric(row.names(counts.f)), counts.f)
     
     if(dedupe){
-      counts.d[,2] = counts.d[,2]/2 #not sure why, but this is the needed correction. Everything is doubled
+      counts.d[counts.d[,1]==0,2] = counts.d[counts.d[,1]==0,2] - excess_zeroes #remove excess zero counts
     }
     colnames(counts.d) <- c("pattern.id", "count")
 
