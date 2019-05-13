@@ -435,6 +435,11 @@ std::vector< std::vector<arma::vec> > m_func_par(const std::vector< std::vector<
     	  indlist[k] = indexing(temp_feature[k], limit1[n], limit1[n+1],
     				limit2[m], limit2[m+1], ident_feature[k], dedupe); //returns 2 column matrix of matching indices for field
     	  }
+    	Rcout << " Original list:" << std::endl <<
+    	  temp_feature[k] << std::endl <<
+    	    "Resulting matrix:" << std::endl <<
+    	      indlist[k] << std::endl;
+           
       }
       for(k = 0; k < ptemp_feature.size(); k++){
     	if(ptemp_feature.size() > 0){
