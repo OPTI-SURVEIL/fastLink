@@ -41,21 +41,43 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
       
       if(dedupe == true){
         if(identical == true){
-          index_out.set_size(temp0.n_elem * (temp0.n_elem - 1) / 2, 2);
-          for(i = 0; i < (temp0.n_elem - 1); i++){
-            for(j = i + 1; j < temp0.n_elem; j ++){
-              index_out(rowcount,0) = temp0[i];
-              index_out(rowcount,1) = temp1[j];
+          int nrow = 0;
+          arma::uvec i_bool = temp0 >= 0.0; 
+          for(i = 0; i < (temp0.n_elem); i++){
+            //find indices of temp1 where original col index > row index
+            arma::uvec j_bool = (temp1 + l3) >  (temp0[i] + l1);
+            if(std::sum(j_bool) == 0) i_bool[i] = 0;
+            nrow += std::sum(j_bool);
+          }
+          index_out.set_size(nrow, 2);
+          
+          arma::vec temp0_hat = temp0.elem(find(i_bool == true));
+          
+          for(i = 0; i < temp0_hat.n_elem; i++){
+            //find indices of temp1 where j > i
+            arma::uvec j_bool = (temp1 + l3) >  (temp0[i] + l1);
+            arma::vec temp1_hat = temp1.elem(find(j_bool == true));
+            
+            for(j = 0; j < temp1_hat.n_elem; j ++){
+              index_out(rowcount,0) = temp0_hat[i];
+              index_out(rowcount,1) = temp1_hat[j];
               rowcount++;
             }
           }
         }else{
+          //find correct ordering after adjusting for offsets
           index_out.set_size(temp0.n_elem * temp1.n_elem, 2);
+          
           for(i = 0; i < temp0.n_elem; i++){
             for(j = 0; j < temp1.n_elem; j++){
-              int i_ = temp0[i]; int j_ = temp1[j];
-              index_out(rowcount,0) = std::min(i_, j_);
-              index_out(rowcount,1) = std::max(i_, j_);
+              if((temp0[i] + l1) < (temp1[j] + l3)){
+                index_out(rowcount,0) = temp0[i];
+                index_out(rowcount,1) = temp1[j];
+              }else{
+                index_out(rowcount,0) = temp1[j];
+                index_out(rowcount,1) = temp0[i];
+              }
+              
               rowcount++;
             }
           }
