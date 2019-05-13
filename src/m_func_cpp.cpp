@@ -17,7 +17,7 @@ typedef Eigen::SparseMatrix<double>::InnerIterator InIt;
 arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
 		   const int l3, const int l4, const bool identical, const bool dedupe){
   Rcout << "Original lists:" << std::endl;
-  Rcout << s;
+  Rcpp::print(s);
   
   // Get elements, declare matrix object
   arma::vec s0 = s[0]; arma::vec s1 = s[1];
@@ -100,7 +100,7 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
     
   }
   Rcout << "Result:" << std::endl;
-  Rcout << index_out;
+  Rcpp::print(index_out);
   
   return index_out;
 }
