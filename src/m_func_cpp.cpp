@@ -98,14 +98,16 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
             rowcount++;
           }
         }
-      Rcout << "Original lists:" << std::endl;
-      Rcout << s0 << std::endl;
-      Rcout << s1 << std::endl;
-      Rcout << "Result:" << std::endl;
-      Rcout << index_out << std::endl;
-      
-      index_out.col(0) -= l1;
-      index_out.col(1) -= l3;//converted to index within submatrix
+      if(!index_out.is_empty()){
+        Rcout << "Original lists:" << std::endl;
+        Rcout << s0 << std::endl;
+        Rcout << s1 << std::endl;
+        Rcout << "Result:" << std::endl;
+        Rcout << index_out << std::endl;
+        
+        index_out.col(0) -= l1;
+        index_out.col(1) -= l3;//converted to index within submatrix
+      }
     }
   }
   return index_out;
