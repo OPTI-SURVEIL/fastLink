@@ -98,10 +98,10 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
     
   }
   Rcout << "Original lists:" << std::endl;
-  Rcout << s(1) << std::endl;
-  Rcout << s(2) << std::endl;
+  Rcout << s0 << std::endl;
+  Rcout << s1 << std::endl;
   Rcout << "Result:" << std::endl;
-  Rcpp::print(index_out);
+  Rcout << index_out << std::endl;
   
   return index_out;
 }
