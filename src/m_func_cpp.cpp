@@ -46,8 +46,8 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
           for(i = 0; i < (temp0.n_elem); i++){
             //find indices of temp1 where original col index > row index
             arma::uvec j_bool = (temp1 + l3) >  (temp0[i] + l1);
-            if(std::sum(j_bool) == 0) i_bool[i] = 0;
-            nrow += std::sum(j_bool);
+            if(arma::accu(j_bool) == 0) i_bool[i] = 0;
+            nrow += arma::accu(j_bool); //sum all elemebts
           }
           index_out.set_size(nrow, 2);
           
