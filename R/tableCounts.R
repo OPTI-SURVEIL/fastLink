@@ -136,7 +136,7 @@ tableCounts <- function(gammalist, nobs.a, nobs.b, dedupe = FALSE, n.cores = NUL
     counts.d <- cbind( as.numeric(row.names(counts.f)), counts.f)
     
     if(dedupe){
-      counts.d[counts.d[,1] == 0,2] = counts.d[counts.d[,1] == 0,2] - nobs.a * (nobs.a + 1)/2
+      counts.d[,2] = counts.d[,2]/2 #not sure why, but this is the needed correction. Everything is doubled
     }
     colnames(counts.d) <- c("pattern.id", "count")
 
