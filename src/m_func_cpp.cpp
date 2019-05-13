@@ -38,9 +38,9 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
       arma::vec temp1 = s1.elem(find(s1_bool == true));
       
       if(dedupe){
-        Rcout << "dedupe is true" << std:endl;
+        Rcout << "dedupe is true" << std::endl;
         if(identical){
-          Rcout << "identical is true" << std:endl;
+          Rcout << "identical is true" << std::endl;
         //maximum row index has to be less than maximum column index
         arma::uvec s0_bool2 = temp0 < temp1.max();
         //minimum column index has to be greater than minimum row index
@@ -53,20 +53,22 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
             int i; int j; // Expand grid, declare size of matrix
             int rowcount = 0;
             int nrow = 0;
-            for(i = 0; i < temp0_.nelem(); i++){
+            arma::uvec
+            for(i = 0; i < temp0_.n_elem(); i++){
               nrow += sum(temp1_ > temp0_(i));
             }
             index_out.set_size(nrow, 2);
-            
+            std::vector<int>::iterator jlow;
             for(i = 0; i < temp0_.n_elem; i++)
-              for(j = find(temp1_ > temp0_[i])(1); j < temp1_.n_elem; j ++){
+              jlow = upper_bound(temp1_.begin(), temp1_.end(), temp0_[i]);
+              for(j = (jlow - temp1_.begin()); j < temp1_.n_elem; j ++){
                 index_out(rowcount,0) = temp0_[i];
                 index_out(rowcount,1) = temp1_[j];
                 rowcount++;
               }
            }
         }else{
-          Rcout << "identical is false" << std:endl;
+          Rcout << "identical is false" << std::endl;
           int i; int j;// Expand grid, declare size of matrix
           int rowcount = 0;
           
@@ -80,7 +82,7 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
             
         }
       }else{
-        Rcout << "dedupe is false" << std:endl;
+        Rcout << "dedupe is false" << std::endl;
         int i; int j;// Expand grid, declare size of matrix
         int rowcount = 0;
         
@@ -98,8 +100,8 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
       Rcout << "Result:" << std::endl;
       Rcout << index_out << std::endl;
       
-      index_out.cols(0) -= l1;
-      index_out.cols(1) -= l3;//converted to index within submatrix
+      index_out.col(0) -= l1;
+      index_out.col(1) -= l3;//converted to index within submatrix
     }
   }
   return index_out;
