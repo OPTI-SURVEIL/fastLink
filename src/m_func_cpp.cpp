@@ -43,7 +43,7 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
         if(identical == true){
           int nrow = 0;
           arma::uvec i_bool = temp0 >= 0.0;
-          arma::uvec j_bool = temp1;
+          arma::uvec j_bool = temp1 >= 0.0;
           for(i = 0; i < (temp0.n_elem); i++){
             //find indices of temp1 where original col index > row index
             j_bool = (temp1 + l3) >  (temp0[i] + l1);
