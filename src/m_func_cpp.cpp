@@ -61,7 +61,7 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
             std::vector<int>::iterator jlow;
             for(i = 0; i < temp0_.n_elem; i++)
               jlow = upper_bound(temp1_.begin(), temp1_.end(), temp0_[i]);
-              for(j = (jlow - temp1_.begin()); j < temp1_.n_elem; j ++){
+              for(j = jlow; j < temp1_.n_elem; j ++){
                 index_out(rowcount,0) = temp0_[i];
                 index_out(rowcount,1) = temp1_[j];
                 rowcount++;
@@ -117,11 +117,10 @@ std::vector<arma::vec> indexing_na(const std::vector<arma::vec> s,
 
   // Subset
   arma::uvec s0_l1 = s0 > l1;
+  arma::uvec s0_l2 = s0 <= l2;
   
   if(dedupe){
-    arma::uvec s0_l2 = s0 <= std::min(l2,l4-1);
-  }else{
-    arma::uvec s0_l2 = s0 <= l2;
+    s0_l2 = s0 <= std::min(l2,l4-1);
   }
   
   arma::uvec s1_l3 = s1 > l3;
