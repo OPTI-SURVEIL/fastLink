@@ -79,8 +79,12 @@ tableCounts <- function(gammalist, nobs.a, nobs.b, dedupe = FALSE, n.cores = NUL
 
     ind.i <- 1:n.slices1
     ind.j <- 1:n.slices2
-    ind <- as.matrix(expand.grid(ind.i, ind.j))
+    ind <- as.matrix(expand.grid.jc(ind.i, ind.j))
 
+    if(dedupe)
+      ind = ind[which(ind[,1]<=ind[,2]),] #removing empty blocks for internal linkage represented by upper right tri matrix
+    #then number of excess zeroes should be n.lim.1^2/2 + n.lim.1/2 for all entries where ind[,1] = ind[,2]
+    
     ## Run main function
     if(Sys.info()[['sysname']] == 'Darwin') {
         if (nc == 1) '%oper%' <- foreach::'%do%'

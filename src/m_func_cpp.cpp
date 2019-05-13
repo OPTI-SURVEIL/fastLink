@@ -26,84 +26,82 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
   arma::uvec s0_l2 = s0 <= l2;
   arma::uvec s1_l3 = s1 > l3;
   arma::uvec s1_l4 = s1 <= l4;
+  
   arma::uvec s0_bool = s0_l1 % s0_l2;
   arma::uvec s1_bool = s1_l3 % s1_l4;
+  
   if(sum(s0_bool) >= 1){
 
     if(sum(s1_bool) >= 1){
       // Subset vectors to indices that fall in range
-      arma::vec temp0 = s0.elem(find(s0_bool == true)) - l1; //converted to index within submatrix
-      arma::vec temp1 = s1.elem(find(s1_bool == true)) - l3;
+      arma::vec temp0 = s0.elem(find(s0_bool == true)); 
+      arma::vec temp1 = s1.elem(find(s1_bool == true));
       
-      // Expand grid, declare size of matrix
-      int i; int j;
-      int rowcount = 0;
-      
-      if(dedupe == true){
-        if(identical == true){
-          int nrow = 0;
-          arma::uvec i_bool = temp0 >= 0.0;
-          arma::uvec j_bool = temp1 >= 0.0;
-          for(i = 0; i < (temp0.n_elem); i++){
-            //find indices of temp1 where original col index > row index
-            j_bool = (temp1 + l3) >  (temp0[i] + l1);
-            if(arma::accu(j_bool) == 0) i_bool[i] = 0;
-            nrow += arma::accu(j_bool); //sum all elemebts
-          }
-          index_out.set_size(nrow, 2);
-          
-          arma::vec temp0_hat = temp0.elem(find(i_bool == true));
-          
-          for(i = 0; i < temp0_hat.n_elem; i++){
-            //find indices of temp1 where j > i
-            arma::uvec j_bool = (temp1 + l3) >  (temp0[i] + l1);
-            arma::vec temp1_hat = temp1.elem(find(j_bool == true));
+      if(dedupe){
+        Rcout << "dedupe is true" << std:endl;
+        if(identical){
+          Rcout << "identical is true" << std:endl;
+        //maximum row index has to be less than maximum column index
+        arma::uvec s0_bool2 = temp0 < temp1.max();
+        //minimum column index has to be greater than minimum row index
+        arma::uvec s1_bool2 = temp1 > temp0.min();
+        if(sum(s0_bool2) >= 1)
+          if(sum(s1_bool2) >= 1){
+            arma::vec temp0_ = temp0.elem(find(s0_bool2 == true));
+            arma::vec temp1_ = temp1.elem(find(s1_bool2 == true));
             
-            for(j = 0; j < temp1_hat.n_elem; j ++){
-              index_out(rowcount,0) = temp0_hat[i];
-              index_out(rowcount,1) = temp1_hat[j];
-              rowcount++;
+            int i; int j; // Expand grid, declare size of matrix
+            int rowcount = 0;
+            int nrow = 0;
+            for(i = 0; i < temp0_.nelem(); i++){
+              nrow += sum(temp1_ > temp0_(i));
             }
-          }
-        }else{
-          //find correct ordering after adjusting for offsets
-          index_out.set_size(temp0.n_elem * temp1.n_elem, 2);
-          
-          for(i = 0; i < temp0.n_elem; i++){
-            for(j = 0; j < temp1.n_elem; j++){
-              if((temp0[i] + l1) < (temp1[j] + l3)){
-                index_out(rowcount,0) = temp0[i];
-                index_out(rowcount,1) = temp1[j];
-              }else{
-                index_out(rowcount,0) = temp1[j];
-                index_out(rowcount,1) = temp0[i];
+            index_out.set_size(nrow, 2);
+            
+            for(i = 0; i < temp0_.n_elem; i++)
+              for(j = find(temp1_ > temp0_[i])(1); j < temp1_.n_elem; j ++){
+                index_out(rowcount,0) = temp0_[i];
+                index_out(rowcount,1) = temp1_[j];
+                rowcount++;
               }
-              
+           }
+        }else{
+          Rcout << "identical is false" << std:endl;
+          int i; int j;// Expand grid, declare size of matrix
+          int rowcount = 0;
+          
+          index_out.set_size(temp0.n_elem * temp1.n_elem, 2);
+          for(i = 0; i < temp0.n_elem; i++)
+            for(j = 0; j < temp1.n_elem; j++){
+              index_out(rowcount,0) = std::min(temp0[i],temp1[j]);
+              index_out(rowcount,1) = std::max(temp0[i],temp1[j]);
               rowcount++;
             }
-          }
+            
         }
-        
       }else{
+        Rcout << "dedupe is false" << std:endl;
+        int i; int j;// Expand grid, declare size of matrix
+        int rowcount = 0;
+        
         index_out.set_size(temp0.n_elem * temp1.n_elem, 2);
-        for(i = 0; i < temp0.n_elem; i++){
+        for(i = 0; i < temp0.n_elem; i++)
           for(j = 0; j < temp1.n_elem; j++){
             index_out(rowcount,0) = temp0[i];
             index_out(rowcount,1) = temp1[j];
             rowcount++;
           }
         }
-      }
       Rcout << "Original lists:" << std::endl;
       Rcout << s0 << std::endl;
       Rcout << s1 << std::endl;
       Rcout << "Result:" << std::endl;
       Rcout << index_out << std::endl;
       
+      index_out.cols(0) -= l1;
+      index_out.cols(1) -= l3;//converted to index within submatrix
     }
-    
   }
-  
   return index_out;
 }
 
@@ -118,9 +116,10 @@ std::vector<arma::vec> indexing_na(const std::vector<arma::vec> s,
   // Subset
   arma::uvec s0_l1 = s0 > l1;
   
-  arma::uvec s0_l2 = s0 <= l2;
-  if(dedupe == true && (l4-1) < l2){
-    s0_l2 = s0 <= (l4-1); //double constraint for upper triangular dedup matrix
+  if(dedupe){
+    arma::uvec s0_l2 = s0 <= std::min(l2,l4-1);
+  }else{
+    arma::uvec s0_l2 = s0 <= l2;
   }
   
   arma::uvec s1_l3 = s1 > l3;
@@ -133,7 +132,8 @@ std::vector<arma::vec> indexing_na(const std::vector<arma::vec> s,
   // Output
   std::vector<arma::vec> out(2);
   out[0] = temp0;
-  out[1] = temp1;
+  if(!dedupe)
+    out[1] = temp1;
   return out;
   
 }
