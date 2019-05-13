@@ -42,10 +42,11 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
       if(dedupe == true){
         if(identical == true){
           int nrow = 0;
-          arma::uvec i_bool = temp0 >= 0.0; 
+          arma::uvec i_bool = temp0 >= 0.0;
+          arma::uvec j_bool = temp1;
           for(i = 0; i < (temp0.n_elem); i++){
             //find indices of temp1 where original col index > row index
-            arma::uvec j_bool = (temp1 + l3) >  (temp0[i] + l1);
+            j_bool = (temp1 + l3) >  (temp0[i] + l1);
             if(arma::accu(j_bool) == 0) i_bool[i] = 0;
             nrow += arma::accu(j_bool); //sum all elemebts
           }
@@ -97,11 +98,11 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
     }
     
   }
-  Rcout << "Original lists:" << std::endl;
-  Rcout << s0 << std::endl;
-  Rcout << s1 << std::endl;
-  Rcout << "Result:" << std::endl;
-  Rcout << index_out << std::endl;
+  //Rcout << "Original lists:" << std::endl;
+  //Rcout << s0 << std::endl;
+  //Rcout << s1 << std::endl;
+  //Rcout << "Result:" << std::endl;
+  //Rcout << index_out << std::endl;
   
   return index_out;
 }
