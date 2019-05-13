@@ -58,10 +58,11 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
               nrow += sum(temp1_ > temp0_(i));
             }
             index_out.set_size(nrow, 2);
-            //int jlow;
+            int jlow;
             for(i = 0; i < temp0_.n_elem; i++){
               for(j_ = 0; j_ <= i; j_++)
-            for(j = j_; j < temp1_.n_elem; j ++){
+                jlow = j_;
+            for(j = jlow; j < temp1_.n_elem; j ++){
                 index_out(rowcount,0) = temp0_[i];
                 index_out(rowcount,1) = temp1_[j];
                 rowcount++;
