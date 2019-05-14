@@ -103,54 +103,84 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
     }
     
     if(dedupe){
-      ncomps = length(u.values.1)^2/2 + length(u.values.1)/2
+      n.slices <- max(round(length(u.values.1)/(300), 0), 1) 
+      limit = round(seq(0,length(u.values.1),length(u.values.1)/n.slices),0)
       
-      n.slices = max(round(ncomps/(300)^2, 0), 1)
-      limit = round(seq(0,ncomps,ncomps/n.slices),0)
+      temp.1 <- temp.2 <- list()
       
+      n.cores2 <- min(n.cores, n.slices*(n.slices + 1)/2)
+      temp = list()
       
-      n.cores2 <- min(n.cores, n.slices)
-      
-      stringvec <- function(vals, inds, cut, strdist = method, p1 = w) {
-        if(is.list(vals)){
-          x = lapply(vals,'[',inds[,1])
-          e = lapply(vals,'[',inds[,2])
-          names(x) = names(e) = names(u.trans.1)
+      for(i in 1:n.slices) {
+        if(is.null(transform)){
+          temp[[i]] <- list(u.values.1[(limit[i]+1):limit[i+1]], limit[i])
         }else{
-          x = as.matrix(vals[inds[,1],])
-          e = as.matrix(vals[inds[,2],])
+          temp[[i]] <- list(lapply(u.trans.1, '[',(limit[i]+1):limit[i+1]), limit[i])
         }
+      }
+      
+      stringvec <- function(m, y, cut, strdist = method, p1 = w, identical) {
+        if(!is.list(m[[1]])){
+          x <- as.matrix(m[[1]])
+          e <- as.matrix(y[[1]])
+          nr = nrow(e)
+        }else{
+          x = m[[1]]
+          e = y[[1]]
+          nr = length(e[[1]])
+        }     
         
         if(is.function(strdist)){
-          t <- do.call(strdist,c(list(e, x), method.args))
+          if(identical){
+            t <- do.call(strdist,c(list(e), method.args))
+          }else{
+            t <- do.call(strdist,c(list(e, x), method.args))
+          }
           t[ t < cut ] <- 0
           t <- Matrix(t, sparse = T)
         }else{
           if(strdist == "jw") {
-            t <- 1 - stringdistmatrix(e, x, method = "jw", p = p1, nthread = 1)
+            if(identical){
+              t <- 1 - stringdistmatrix(a = e, method = "jw", p = p1, nthread = 1)
+            }else{
+              t <- 1 - stringdistmatrix(e, x, method = "jw", p = p1, nthread = 1)
+            }
             t[ t < cut ] <- 0
-            t <- Matrix(as.numeric(t), sparse = T)
+            t <- Matrix(t, sparse = T)
           }
           
           if(strdist == "jaro") {
-            t <- 1 - stringdistmatrix(e, x, method = "jw", nthread = 1)
+            if(identical){
+              t <- 1 - stringdistmatrix(a=e, method = "jw", nthread = 1)  
+            }else{
+              t <- 1 - stringdistmatrix(e, x, method = "jw", nthread = 1)  
+            }
             t[ t < cut ] <- 0
-            t <- Matrix(as.numeric(t), sparse = T)
+            t <- Matrix(t, sparse = T)
           }
           
           if(strdist == "lv") {
-            t <- stringdistmatrix(e, x, method = method, nthread = 1)
+            if(identical){
+              t <- stringdistmatrix(e, method = method, nthread = 1)
+            }else{
+              t <- stringdistmatrix(e, x, method = method, nthread = 1)
+            }
+            
             t.1 <- nchar(as.matrix(e))
             t.2 <- nchar(as.matrix(x))
             o <- t(apply(t.1, 1, function(w){ ifelse(w >= t.2, w, t.2)}))
             t <- 1 - t * (1/o)
             t[ t < cut ] <- 0
-            t <- Matrix(as.numeric(t), sparse = T)
+            t <- Matrix(t, sparse = T)
           }
         }
         
         t@x[t@x >= cut] <- 2; gc()       	
-        indexes.2 <- inds[which(t == 2),]
+        slice.1 <- m[[2]]
+        slice.2 <- y[[2]]
+        indexes.2 <- which(t == 2, arr.ind = T)
+        indexes.2[, 1] <- indexes.2[, 1] + slice.2
+        indexes.2[, 2] <- indexes.2[, 2] + slice.1
         list(indexes.2)
       }
       
@@ -162,18 +192,24 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
         on.exit(stopCluster(cl))
       }
       
-      pb = txtProgressBar(0,n.slices,style = 1)
+      do <- expand.grid.jc(1:n.slices,1:n.slices)
+      drop = do[,2] < do[,1]
+      do = do[!drop,]
+      
+      pb = txtProgressBar(0,nrow(do),style = 1)
       
       progress <- function(n) setTxtProgressBar(pb, n)
       
       opts <- list(progress = progress)
       uvs = ifelse(is.null(transform), unique.values.1, u.trans.1)
-      n.u = length(u.values.1)
-      temp.f <- foreach(i = 1:n.slices, .packages = c("stringdist", "Matrix",pkgs),.export = exports,
+      
+      
+      temp.f <- foreach(i = 1:nrow(do), .packages = c("stringdist", "Matrix",pkgs),.export = exports,
                         .options.snow=opts) %oper% { 
-                          inds = combo_deindexer((limit[i]+1):limit[i+1],n.u)
-                          
-                          stringvec(uvs, inds, cut.a)
+                        r1 <- do[i, 1]
+                        r2 <- do[i, 2]
+                        #if(i %% 100 == 0) setTxtProgressBar(pb,i)
+                        stringvec(temp[[r1]], temp[[r2]], cut.a,identical = r1==r2)
                         }
       close(pb)
     }else{

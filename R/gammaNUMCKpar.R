@@ -57,27 +57,45 @@ gammaNUMCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 1, cut.p = 2, de
     u.values.2 <- unique(matrix.2)
     
     if(dedupe){
-      ncomps = length(u.values.1)^2/2 + length(u.values.1)/2
+      n.slices <- max(round(length(u.values.1)/(300), 0), 1) 
+      limit = round(seq(0,length(u.values.1),length(u.values.1)/n.slices),0)
       
-      n.slices = max(round(ncomps/(4500)^2, 0), 1)
-      limit = round(seq(0,ncomps,ncomps/n.slices),0)
+      temp.1 <- temp.2 <- list()
       
-      n.cores2 <- min(n.cores, n.slices)
+      n.cores2 <- min(n.cores, n.slices*(n.slices + 1)/2)
+      temp = list()
       
-      difference <- function(vals,inds, cut) {
+      for(i in 1:n.slices) {
+        temp[[i]] <- list(u.values.1[(limit[i]+1):limit[i+1]], limit[i])
+      }
+      
+      difference <- function(m, y, cut,identical) {
+        x <- as.matrix(m[[1]])
+        e <- as.matrix(y[[1]])        
         
-        x <- vals[inds[,1],]
-        e <- vals[inds[,2],]        
-        
-        t <- abs(x-e)
+        if(identical){
+          inds = RcppAlgos::comboGeneral(1:nrow(x),2)
+          res <- abs(x[inds[,1]] - x[inds[,2]])
+          t <- matrix(0,ncol = nrow(x),nrow = nrow(x))
+          t[lower.tri(t)] = res
+        }else{
+          t <- calcPWDcpp(as.matrix(x), as.matrix(e))
+        }
         t[ t == 0 ] <- cut[1]
         t[ t > cut[2] ] <- 0
         t <- Matrix(t, sparse = T)
         
         t@x[t@x <= cut[1]] <- cut[2] + 1; gc()       	                
-        t@x[t@x > cut[1] & t@x <= cut[2]] <- 1; gc()      	
-        indexes.2 <- inds[which(t == cut[2] + 1),]
-        indexes.1 <- inds[which(t == 1),]
+        t@x[t@x > cut[1] & t@x <= cut[2]] <- 1; gc()       	
+        
+        slice.1 <- m[[2]]
+        slice.2 <- y[[2]]
+        indexes.2 <- which(t == cut[2] + 1, arr.ind = T)
+        indexes.2[, 1] <- indexes.2[, 1] + slice.2
+        indexes.2[, 2] <- indexes.2[, 2] + slice.1
+        indexes.1 <- which(t == 1, arr.ind = T)
+        indexes.1[, 1] <- indexes.1[, 1] + slice.2
+        indexes.1[, 2] <- indexes.1[, 2] + slice.1
         list(indexes.2, indexes.1)
       }
       
@@ -89,10 +107,15 @@ gammaNUMCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 1, cut.p = 2, de
         on.exit(stopCluster(cl))
       }
       
-      temp.f <- foreach(i = 1:n.slices, .packages = c("Matrix")) %oper% {
-        inds = combo_deindexer((limit[i]+1):limit[i+1],length(u.values.1))
+      do <- expand.grid.jc(1:n.slices,1:n.slices)
+      drop = do[,2] < do[,1]
+      do = do[!drop,]
+      
+      temp.f <- foreach(i = 1:nrow(do), .packages = c("Matrix")) %oper% {
+        r1 <- do[i, 1]
+        r2 <- do[i, 2]
         
-        difference(u.values.1, inds, c(cut.a,cut.p))
+        difference(temp[[r1]], temp[[r2]], c(cut.a,cut.p), identical = r1==r2)
       }
       
     }else{
