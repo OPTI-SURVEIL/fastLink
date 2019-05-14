@@ -63,7 +63,7 @@ gammaNUMCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 1, dedupe = F) 
     u.values.2 <- unique(matrix.2)
     
     if(dedupe){
-      n.slices <- max(round(length(u.values.1)/(300), 0), 1) 
+      n.slices <- max(round(length(u.values.1)/(4500), 0), 1) 
       limit = round(seq(0,length(u.values.1),length(u.values.1)/n.slices),0)
       
       temp.1 <- temp.2 <- list()
