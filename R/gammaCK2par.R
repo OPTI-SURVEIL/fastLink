@@ -201,8 +201,6 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
       progress <- function(n) setTxtProgressBar(pb, n)
       
       opts <- list(progress = progress)
-      uvs = ifelse(is.null(transform), unique.values.1, u.trans.1)
-      
       
       temp.f <- foreach(i = 1:nrow(do), .packages = c("stringdist", "Matrix",pkgs),.export = exports,
                         .options.snow=opts) %oper% { 
