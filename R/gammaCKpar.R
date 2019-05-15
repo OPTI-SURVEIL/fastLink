@@ -200,7 +200,7 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
       
       do <- expand.grid.jc(1:n.slices,1:n.slices)
       drop = do[,2] < do[,1]
-      do = do[!drop,]
+      do = as.matrix(do[!drop,],ncol=2)
       
       pb = txtProgressBar(0,nrow(do),style = 1)
       

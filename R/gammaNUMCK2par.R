@@ -113,7 +113,7 @@ gammaNUMCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 1, dedupe = F) 
       
       do <- expand.grid.jc(1:n.slices,1:n.slices)
       drop = do[,2] < do[,1]
-      do = do[!drop,]
+      do = as.matrix(do[!drop,],ncol=2)
       
       temp.f <- foreach(i = 1:nrow(do), .packages = c("Matrix")) %oper% {
         r1 <- do[i, 1]
