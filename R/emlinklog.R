@@ -181,7 +181,7 @@ emlinklog <- function(patterns, nobs.a, nobs.b,
         pat <- data.frame(gamma.j.k)
         pat[is.na(pat)] <- -1
         pat <- replace(pat, TRUE, lapply(pat, factor))
-        factors <- model.matrix(~ .+0, pat)
+        factors <- model.matrix(~ ., pat)[,-1] #remove intercept column
         
         ## get theta.m and theta.u
         c <- 1e-06
