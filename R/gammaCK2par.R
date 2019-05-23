@@ -133,6 +133,10 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
         if(is.function(strdist)){
           if(identical){
             t <- do.call(strdist,c(list(e), method.args))
+            diag(t) = sapply(1:length(e), function(i){
+              inp = lapply(e,'[',i)
+              do.call(strdist,c(list(inp),list(inp), method.args))
+            })
           }else{
             t <- do.call(strdist,c(list(e, x), method.args))
           }
@@ -142,6 +146,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
           if(strdist == "jw") {
             if(identical){
               t <- 1 - stringdistmatrix(a = e, method = "jw", p = p1, nthread = 1)
+              diag(t) = 1 - stringdist(e, e, method = 'jw', p = p1, nthread = 1)
             }else{
               t <- 1 - stringdistmatrix(e, x, method = "jw", p = p1, nthread = 1)
             }
@@ -152,6 +157,7 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
           if(strdist == "jaro") {
             if(identical){
               t <- 1 - stringdistmatrix(a=e, method = "jw", nthread = 1)  
+              diag(t) = 1 - stringdist(e, e, method = 'jw', nthread = 1)
             }else{
               t <- 1 - stringdistmatrix(e, x, method = "jw", nthread = 1)  
             }
@@ -161,9 +167,10 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
           
           if(strdist == "lv") {
             if(identical){
-              t <- stringdistmatrix(e, method = method, nthread = 1)
+              t <- stringdistmatrix(e, method = 'lv', nthread = 1)
+              diag(t) = stringdist(e,e,method = 'lv', nthread = 1)
             }else{
-              t <- stringdistmatrix(e, x, method = method, nthread = 1)
+              t <- stringdistmatrix(e, x, method = 'lv', nthread = 1)
             }
             
             t.1 <- nchar(as.matrix(e))
