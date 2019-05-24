@@ -135,7 +135,7 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
         if(is.function(strdist)){
           if(identical){
             t <- do.call(strdist,c(list(e), method.args))
-            diag(t) = sapply(1:length(e), function(i){
+            diag(t) = sapply(1:length(e[[1]]), function(i){
               inp = lapply(e,'[',i)
               do.call(strdist,c(list(inp),list(inp), method.args))
             })
