@@ -76,8 +76,9 @@ gammaNUMCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 1, cut.p = 2, de
         if(identical){
           inds = RcppAlgos::comboGeneral(1:nrow(x),2)
           res <- abs(x[inds[,1]] - x[inds[,2]])
-          t <- matrix(0,ncol = nrow(x),nrow = nrow(x))
+          t <- matrix(cut[2] + 1,ncol = nrow(x),nrow = nrow(x))
           t[lower.tri(t)] = res
+          diag(t) = 0
         }else{
           t <- calcPWDcpp(as.matrix(x), as.matrix(e))
         }

@@ -133,10 +133,11 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
         if(is.function(strdist)){
           if(identical){
             t <- do.call(strdist,c(list(e), method.args))
-            diag(t) = sapply(1:length(e[[1]]), function(i){
-              inp = lapply(e,'[',i)
-              do.call(strdist,c(list(inp),list(inp), method.args))
-            })
+            # diag(t) = sapply(1:length(e[[1]]), function(i){
+            #   inp = lapply(e,'[',i)
+            #   do.call(strdist,c(list(inp),list(inp), method.args))
+            # })
+            diag(t) = cut + 1
           }else{
             t <- do.call(strdist,c(list(e, x), method.args))
           }
@@ -146,7 +147,9 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
           if(strdist == "jw") {
             if(identical){
               t <- 1 - stringdistmatrix(a = e, method = "jw", p = p1, nthread = 1)
-              diag(t) = 1 - stringdist(e, e, method = 'jw', p = p1, nthread = 1)
+              t = as.matrix(t) * lower.tri(t)
+              #diag(t) = 1 - stringdist(e, e, method = 'jw', p = p1, nthread = 1)
+              diag(t) = cut + 1
             }else{
               t <- 1 - stringdistmatrix(e, x, method = "jw", p = p1, nthread = 1)
             }
@@ -157,7 +160,10 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
           if(strdist == "jaro") {
             if(identical){
               t <- 1 - stringdistmatrix(a=e, method = "jw", nthread = 1)  
-              diag(t) = 1 - stringdist(e, e, method = 'jw', nthread = 1)
+              t = as.matrix(t) * lower.tri(t)
+              
+              #diag(t) = 1 - stringdist(e, e, method = 'jw', nthread = 1)
+              diag(t) = cut + 1
             }else{
               t <- 1 - stringdistmatrix(e, x, method = "jw", nthread = 1)  
             }
@@ -168,7 +174,10 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
           if(strdist == "lv") {
             if(identical){
               t <- stringdistmatrix(e, method = 'lv', nthread = 1)
-              diag(t) = stringdist(e,e,method = 'lv', nthread = 1)
+              t = as.matrix(t) * lower.tri(t)
+              
+              #diag(t) = stringdist(e,e,method = 'lv', nthread = 1)
+              diag(t) = 0
             }else{
               t <- stringdistmatrix(e, x, method = 'lv', nthread = 1)
             }
