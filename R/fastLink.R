@@ -19,15 +19,20 @@
 #'   should use string distance matching. Must be a subset of 'varnames' and
 #'   must not be present in 'numeric.match'.
 #' @param string.transform An optional function returning a transformation or
-#'   list of transformation of the input strings
+#'   list of transformations of the input strings
+#'   
 #' @param string.transform.args A list of arguments to the provided string transformation function
 #' 
 #' @param stringdist.method String distance method for calculating similarity,
 #'   options are: "jw" Jaro-Winkler (Default), "jaro" Jaro, and "lv" Edit. May
-#'   also be a function for custom methods. If a function is given, the first
-#'   two arguments should correspond to the strings to be compared
+#'   also be a function for custom methods. The custom function should return a N1 by N2 matrix of similarity scores based on 
+#'   the strings to be compared, given in the first two arguments, as well as any additional arguments, which must be passed 
+#'   as a list to stringdist.args. If internal linkage and deduplication is desired, the custom function should be return
+#'   a lower triangular matrix (N1 by N1) of scores for permutations of a vector of strings when the second argument is missing.
+#'   
 #' @param stringdist.args List of arguments to be provided to stringdist.method
 #'   if a custom function is used.
+#'   
 #' @param numeric.match A vector of variable names indicating which variables
 #'   should use numeric matching. Must be a subset of 'varnames' and must not be
 #'   present in 'stringdist.match'.
