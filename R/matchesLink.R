@@ -16,6 +16,7 @@
 #' @param thresh is the interval of posterior zeta values for the agreements that we want to examine closer. Ranges between 0 and 1.
 #' Can be a vector of length 1 (from specified value to 1) or 2 (from first specified value to second specified value).
 #' @param n.cores Number of cores to parallelize over. Default is NULL.
+#' @param dedupe Boolean indicator for whether internal linkage is taking place
 #'
 #' @return \code{matchesLink} returns an nmatches X 2 matrix with the indices of the
 #' matches rows in dataset A and dataset B.
@@ -48,7 +49,7 @@
 ## we use matchesLink
 ## ------------------------
 
-matchesLink <- function(gammalist, nobs.a, nobs.b, em, thresh, n.cores = NULL) {
+matchesLink <- function(gammalist, nobs.a, nobs.b, em, thresh, n.cores = NULL,dedupe = F) {
 
     if(is.null(n.cores)) {
         n.cores <- detectCores() - 1
@@ -117,12 +118,15 @@ matchesLink <- function(gammalist, nobs.a, nobs.b, em, thresh, n.cores = NULL) {
     temp <- vector(mode = "list", length = length(gammalist))
     ptemp <- vector(mode = "list", length = length(gammalist))
     natemp <- vector(mode = "list", length = length(gammalist))
+    identical <- vector(mode = "list", length = length(gammalist))
+    
     for(i in 1:length(gammalist)){
         temp[[i]] <- gammalist[[i]]$matches2
         if(!is.null(gammalist[[i]]$matches1)) {
             ptemp[[i]] <- gammalist[[i]]$matches1
         }
         natemp[[i]] <- gammalist[[i]]$nas
+        identical[[i]] <- gammalist[[i]]$.identical
     }
 
     ind.i <- 1:n.slices1
@@ -144,6 +148,8 @@ matchesLink <- function(gammalist, nobs.a, nobs.b, em, thresh, n.cores = NULL) {
                        limit1 = limit.1, limit2 = limit.2,
                        nlim1 = n.lim.1, nlim2 = n.lim.2,
                        ind = as.matrix(t(ind[i, ])), listid = list.id,
+                       identical = identical,
+                       dedupe = dedupe,
                        matchesLink = TRUE, threads = 1)
       	}
         
@@ -165,6 +171,8 @@ matchesLink <- function(gammalist, nobs.a, nobs.b, em, thresh, n.cores = NULL) {
                              limit1 = limit.1, limit2 = limit.2,
                              nlim1 = n.lim.1, nlim2 = n.lim.2,
                              ind = ind, listid = list.id,
+                             identical = identical,
+                             dedupe = dedupe,
                              matchesLink = TRUE, threads = nc)
 
         gammas_mat <- lapply(gammas, function(x){

@@ -21,6 +21,8 @@ produced by emlinkMARmov}
 Can be a vector of length 1 (from specified value to 1) or 2 (from first specified value to second specified value).}
 
 \item{n.cores}{Number of cores to parallelize over. Default is NULL.}
+
+\item{dedupe}{Boolean indicator for whether internal linkage is taking place}
 }
 \value{
 \code{matchesLink} returns an nmatches X 2 matrix with the indices of the

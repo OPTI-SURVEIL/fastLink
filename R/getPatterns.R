@@ -105,7 +105,7 @@ getPatterns <- function(matchesA, matchesB, varnames,
             gammalist[[i]] <- ifelse(tmp == TRUE, 2, 0)
         }
 
-        namevec[i] <- paste0("gamma.", i)
+        namevec[i] <- paste0("gamma.", varnames[i])
         
     }
     gammalist <- data.frame(do.call(cbind, gammalist))

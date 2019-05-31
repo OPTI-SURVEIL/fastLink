@@ -382,7 +382,7 @@ fastLink <- function(dfA, dfB, varnames,
     start <- Sys.time()
     counts <- tableCounts(gammalist, nobs.a = nr_a, nobs.b = nr_b, n.cores = n.cores,
                           dedupe = dedupe.df)
-    colnames(counts)[seq_along(varnames)] = varnames
+    colnames(counts)[seq_along(varnames)] = paste0('gamma.',varnames)
     # if(dedupe.df){
     #   #Added correction to remove self-comparisons from internal linkage
     #   tempfrm = dfA[,varnames]
@@ -466,7 +466,7 @@ fastLink <- function(dfA, dfB, varnames,
         start <- Sys.time()
         matches <- matchesLink(gammalist, nobs.a = nr_a, nobs.b = nr_b,
                                em = resultsEM, thresh = threshold.match,
-                               n.cores = n.cores)
+                               n.cores = n.cores, dedupe = dedupe.df)
         end <- Sys.time()
         if(verbose){
             cat("Getting the indices of estimated matches took", round(difftime(end, start, units = "mins"), 2), "minutes.\n\n")
