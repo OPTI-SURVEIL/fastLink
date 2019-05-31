@@ -14,6 +14,7 @@ globalVariables(c('V2', 'V3', '.'))
 #' user wants to declare a match. For instance, threshold.match = .85 will return all pairs with posterior probability greater than .85 as matches.
 #' Default is 0.85.
 #' @param combine.dfs Whether to combine the two data frames being merged into a single data frame. If FALSE, two data frames are returned in a list. Default is TRUE.
+#' @param twolineformat Boolean. Whether to  return a single dataframe with each matched pair presented in subsequent rows, with spaces separating the pairs. Only works if \code{combine.dfs = FALSE}
 #'
 #' @return \code{getMatches()} returns a list of two data frames:
 #' \item{dfA.match}{A subset of \code{dfA} subsetted down to the successful matches.}
@@ -29,7 +30,7 @@ globalVariables(c('V2', 'V3', '.'))
 #' ret <- getMatches(dfA, dfB, fl.out)
 #' }
 #' @export
-getMatches <- function(dfA, dfB, fl.out, threshold.match = 0.85, combine.dfs = TRUE){
+getMatches <- function(dfA, dfB, fl.out, threshold.match = 0.85, combine.dfs = TRUE, twolineformat = FALSE){
 
     ## Convert data frames
     if(any(class(dfA) %in% c("tbl_df", "data.table"))){
@@ -109,15 +110,36 @@ getMatches <- function(dfA, dfB, fl.out, threshold.match = 0.85, combine.dfs = T
             }
             out <- df.match
         }else{
+          if(!twolineformat){
             dfA.match <- cbind(dfA.match, fl.out$patterns)
             dfB.match <- cbind(dfB.match, fl.out$patterns)
             if("posterior" %in% names(fl.out)){
-                dfA.match$posterior <- fl.out$posterior
-                dfB.match$posterior <- fl.out$posterior
-                dfA.match <- dfA.match[dfA.match$posterior >= threshold.match,]
-                dfB.match <- dfB.match[dfB.match$posterior >= threshold.match,]
+              dfA.match$posterior <- fl.out$posterior
+              dfB.match$posterior <- fl.out$posterior
+              dfA.match <- dfA.match[dfA.match$posterior >= threshold.match,]
+              dfB.match <- dfB.match[dfB.match$posterior >= threshold.match,]
             }
             out <- list(dfA.match = dfA.match, dfB.match = dfB.match)
+          }else{
+            combinedframe = matrix('',nrow = nrow(dfA.match) * 4, ncol = ncol(dfA.match) + 1 + 'posterior' %in% names(fl.out))
+            namevec = c('row.index',names(dfA.match),'p_match')
+            colnames(combinedframe) = namevec[1:ncol(combinedframe)]
+            
+            prefixes = c('dfA','dfB')
+            if(inherits(fl.out, "fastLink.dedupe")) prefixes[2] = 'dfA'
+            
+            combinedframe[seq(1,nrow(combinedframe)-3,4),1:(ncol(dfA.match)+1)] = as.matrix(cbind(paste0(prefixes[1],'.',fl.out$matches$inds.a),dfA.match))
+            combinedframe[seq(2,nrow(combinedframe)-2,4),1:(ncol(dfA.match)+1)] = as.matrix(cbind(paste0(prefixes[2],'.',fl.out$matches$inds.b),dfB.match))
+            
+            patmat = as.matrix(cbind('agreement pattern:',fl.out$patterns))
+            if('posterior' %in% names(fl.out)){
+              patmat = cbind(patmat, round(fl.out$posterior,4))
+            }
+            
+            combinedframe[seq(3,nrow(combinedframe)-1,4),] = patmat
+            out <- combinedframe
+          }
+            
         }
     }
 
