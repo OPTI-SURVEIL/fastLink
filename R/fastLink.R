@@ -94,6 +94,8 @@
 #'   all pairs with posterior probability greater than .85 as matches, while
 #'   threshold.match = c(.85, .95) will return all pairs with posterior
 #'   probability between .85 and .95 as matches.
+#' @param auto.threshold Boolean. If set to \code{TRUE}, the default, the threshold for accepting matches is automatically calculated 
+#' to return the closest number of matches to the overall estimated proportion
 #' @param return.all Whether to return the most likely match for each
 #'   observation in dfA and dfB. Overrides user setting of
 #'   \code{threshold.match} by setting \code{threshold.match} to 0.0001, and
@@ -144,7 +146,7 @@ fastLink <- function(dfA, dfB, varnames,
                      gender.field = NULL, estimate.only = FALSE, em.obj = NULL,
                      dedupe.matches = TRUE, linprog.dedupe = FALSE,
                      reweight.names = FALSE, firstname.field = NULL, cond.indep = TRUE,
-                     n.cores = NULL, tol.em = 1e-04, threshold.match = 0.85,
+                     n.cores = NULL, tol.em = 1e-04, threshold.match = 0.85,auto.threshold = T,
                      return.all = FALSE, return.df = FALSE, verbose = FALSE){
 
     cat("\n")
@@ -431,6 +433,12 @@ fastLink <- function(dfA, dfB, varnames,
     }else{
         cat("Imputing matching probabilities using provided EM object.\n")
         resultsEM <- emlinkRS(counts, em.obj, nr_a, nr_b)
+    }
+    if(auto.threshold){
+      trgt_count = resultsEM$p.m * sum(resultsEM$patterns.w[,'counts'])
+      ordered_counts = resultsEM$patterns.w[order(resultsEM$zeta.j,decreasing = T),'counts']
+      thresh_ind = which.min(abs(cumsum(ordered_counts) - trgt_count))
+      threshold.match = sort(resultsEM$zeta.j,decreasing = T)[thresh_ind]
     }
 
     if(max(resultsEM$zeta.j) < threshold.match) {
