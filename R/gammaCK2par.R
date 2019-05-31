@@ -93,12 +93,12 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
     
     if(is.function(method)){
       depsm = find_dependencies(method)
-      depst = find_dependencies(transform)
+      #depst = find_dependencies(transform)
       
-      exports = unique(c(depsm$depends$calls[sapply(depsm$depends$pkgs,function(x) '.GlobalEnv' %in% x)],
-                         depst$depends$calls[sapply(depst$depends$pkgs,function(x) '.GlobalEnv' %in% x)]))
+      exports = unique(c(depsm$depends$calls[sapply(depsm$depends$pkgs,function(x) '.GlobalEnv' %in% x)]))#,
+                         #depst$depends$calls[sapply(depst$depends$pkgs,function(x) '.GlobalEnv' %in% x)]))
       
-      pkgs = unique(c(unlist(depsm$depends$pkgs),unlist(depst$depends$pkgs)))
+      pkgs = unique(c(unlist(depsm$depends$pkgs)))#,unlist(depst$depends$pkgs)))
       pkgs = pkgs[!(pkgs %in% c('base','.GlobalEnv'))]
     }
     
