@@ -4,43 +4,20 @@
 \alias{getPatterns}
 \title{getPatterns}
 \usage{
-getPatterns(matchesA, matchesB, varnames, stringdist.match, numeric.match,
-  partial.match, stringdist.method = "jw", cut.a = 0.92,
-  cut.p = 0.88, jw.weight = 0.1, cut.a.num = 1, cut.p.num = 2.5)
+getPatterns(matchesA, matchesB, varnames, partial.match, gammalist)
 }
 \arguments{
-\item{matchesA}{A dataframe of the matched observations in
-dataset A, with all variables used to inform the match.}
+\item{matchesA}{Indices of matches from dataframe A.}
 
-\item{matchesB}{A dataframe of the matched observations in
-dataset B, with all variables used to inform the match.}
+\item{matchesB}{Indices of matches from dataframe B.}
 
-\item{varnames}{A vector of variable names to use for matching.
-Must be present in both matchesA and matchesB.}
-
-\item{stringdist.match}{A vector of booleans, indicating whether to use
-string distance matching when determining matching patterns on
-each variable. Must be same length as varnames.}
-
-\item{numeric.match}{A vector of booleans, indicating whether to use
-numeric pairwise distance matching when determining matching patterns on
-each variable. Must be same length as varnames.}
+\item{varnames}{A vector of variable names to use for matching.}
 
 \item{partial.match}{A vector of booleans, indicating whether to include
-a partial matching category for the string distances. Must be same length
+a partial matching category for each column. Must be same length
 as varnames. Default is FALSE for all variables.}
 
-\item{stringdist.method}{String distance method for calculating similarity, options are: "jw" Jaro-Winkler (Default), "jaro" Jaro, and "lv" Edit}
-
-\item{cut.a}{Lower bound for full string-distance match, ranging between 0 and 1. Default is 0.92}
-
-\item{cut.p}{Lower bound for partial string-distance match, ranging between 0 and 1. Default is 0.88}
-
-\item{jw.weight}{Parameter that describes the importance of the first characters of a string (only needed if stringdist.method = "jw"). Default is .10}
-
-\item{cut.a.num}{Lower bound for full numeric match. Default is 1}
-
-\item{cut.p.num}{Lower bound for partial numeric match. Default is 2.5}
+\item{gammalist}{A list of agreement pointers returned by gammaCKpar or similar functions for each column}
 }
 \value{
 \code{getPatterns()} returns a dataframe with a row for each matched pair,

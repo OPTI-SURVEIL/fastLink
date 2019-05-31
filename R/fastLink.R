@@ -473,12 +473,9 @@ fastLink <- function(dfA, dfB, varnames,
         }
 
         ## Get the patterns
-        patterns <- getPatterns(matchesA = dfA[matches$inds.a, ], matchesB = dfB[matches$inds.b, ],
-                                varnames = varnames, stringdist.match = stringdist.match,
-                                numeric.match = numeric.match, partial.match = partial.match,
-                                stringdist.method = stringdist.method,
-                                cut.a = cut.a, cut.p = cut.p, jw.weight = jw.weight,
-                                cut.a.num = cut.a.num, cut.p.num = cut.p.num)
+        patterns <- getPatterns(matchesA = matches$inds.a, matchesB = matches$inds.b,
+                                varnames = varnames, partial.match = partial.match,
+                                gammalist = gammalist)
         
         ## Run deduplication
         if(dedupe.matches & length(matches$inds.a) > 0){
@@ -507,12 +504,9 @@ fastLink <- function(dfA, dfB, varnames,
         ## Get the patterns
         cat("Getting the match patterns for each estimated match.\n")
         start <- Sys.time()
-        patterns <- getPatterns(matchesA = dfA[matches$inds.a, ], matchesB = dfB[matches$inds.b, ],
-                                varnames = varnames, stringdist.match = stringdist.match,
-                                numeric.match = numeric.match, partial.match = partial.match,
-                                stringdist.method = stringdist.method,
-                                cut.a = cut.a, cut.p = cut.p, jw.weight = jw.weight,
-                                cut.a.num = cut.a.num, cut.p.num = cut.p.num)
+        patterns <- getPatterns(matchesA = matches$inds.a, matchesB = matches$inds.b,
+                                varnames = varnames, partial.match = partial.match,
+                                gammalist = gammalist)
         end <- Sys.time()
         if(verbose){
             cat("Getting the match patterns for each estimated match took", round(difftime(end, start, units = "mins"), 2), "minutes.\n\n")
