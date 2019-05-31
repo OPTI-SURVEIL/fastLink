@@ -137,7 +137,7 @@ getMatches <- function(dfA, dfB, fl.out, threshold.match = 0.85, combine.dfs = T
             }
             
             combinedframe[seq(3,nrow(combinedframe)-1,4),] = patmat
-            out <- combinedframe
+            out <- as.data.frame(combinedframe)
           }
             
         }
