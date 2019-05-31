@@ -383,26 +383,7 @@ fastLink <- function(dfA, dfB, varnames,
     counts <- tableCounts(gammalist, nobs.a = nr_a, nobs.b = nr_b, n.cores = n.cores,
                           dedupe = dedupe.df)
     colnames(counts)[seq_along(varnames)] = paste0('gamma.',varnames)
-    # if(dedupe.df){
-    #   #Added correction to remove self-comparisons from internal linkage
-    #   tempfrm = dfA[,varnames]
-    #   tempfrm[!is.na(tempfrm)] = 2
-    #   tempfrm = data.frame(lapply(tempfrm,as.numeric))
-    #   count_cor = plyr::count(tempfrm)
-    #   trgtnms = sapply(1:nrow(counts), function(i) paste0(counts[i,seq_along(varnames)],collapse=''))
-    #   seeknms = sapply(1:nrow(count_cor), function(i) paste0(count_cor[i,seq_along(varnames)],collapse=''))
-    #   
-    #   counts[match(seeknms,trgtnms),'counts'] = counts[match(seeknms,trgtnms),'counts'] - count_cor$freq
-    #   counts = counts[counts[,'counts'] != 0,]
-    #   counts[,'counts'] = counts[,'counts']/2
-    #   dropvars = which(apply(counts[,seq_along(varnames)],2,function(v) length(unique(v)) == 1))
-    #   if(length(dropvars)>0){
-    #     cat('    Dropping variable(s) [', colnames(counts)[dropvars],'] due to lack of variation \n',sep = '')
-    #     counts = counts[,-dropvars]
-    #     varnames = varnames[-dropvars]
-    #     gammalist = gammalist[-dropvars]
-    #   } 
-    # }
+  
     end <- Sys.time()
     if(verbose){
         cat("Getting counts for parameter estimation took", round(difftime(end, start, units = "mins"), 2), "minutes.\n\n")
@@ -467,6 +448,7 @@ fastLink <- function(dfA, dfB, varnames,
         matches <- matchesLink(gammalist, nobs.a = nr_a, nobs.b = nr_b,
                                em = resultsEM, thresh = threshold.match,
                                n.cores = n.cores, dedupe = dedupe.df)
+        
         end <- Sys.time()
         if(verbose){
             cat("Getting the indices of estimated matches took", round(difftime(end, start, units = "mins"), 2), "minutes.\n\n")

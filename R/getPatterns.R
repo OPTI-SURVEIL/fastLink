@@ -30,26 +30,23 @@ getPatterns <- function(matchesA, matchesB, varnames,
     namevec <- rep(NA, length(varnames))
     
     for(i in 1:length(gammalist)){
-      mtab1 = data.table(
-        do.call(rbind,
-                lapply(1:length(gammalist[[i]]$matches2), function(j) data.frame(x1 = gammalist[[i]]$matches2[[j]][[1]],i1 = j))))
-      mtab2 = data.table(
-        do.call(rbind,
-                lapply(1:length(gammalist[[i]]$matches2), function(j) data.frame(x2 = gammalist[[i]]$matches2[[j]][[2]],i1 = j))))
+      mtab1 = do.call(rbind,
+                lapply(1:length(gammalist[[i]]$matches2), function(j) expand.grid.jc(gammalist[[i]]$matches2[[j]][[1]],j)))
+      mtab2 = do.call(rbind,
+                lapply(1:length(gammalist[[i]]$matches2), function(j) expand.grid.jc(gammalist[[i]]$matches2[[j]][[2]],j)))
       
-      i1s = mtab1[match(matchesA,x1),i1]; i2s = mtab2[match(matchesB,x2),i1]
+      i1s = mtab1[match(matchesA,mtab1[,1]),2]; i2s = mtab2[match(matchesB,mtab2[,1]),2]
       
       gammalist2[[i]] = (i1s == i2s) * 2
       gammalist2[[i]][matchesA %in% gammalist[[i]]$nas[[1]] | matchesB %in% gammalist[[i]]$nas[[2]]] = NA
       
       if(partial.match[i]){
-        pmtab1 = data.table(
-          do.call(rbind,
-                  lapply(1:length(gammalist[[i]]$matches1), function(j) data.frame(x1 = gammalist[[i]]$matches1[[j]][[1]],i1 = j))))
-        pmtab2 = data.table(
-          do.call(rbind,
-                  lapply(1:length(gammalist[[i]]$matches1), function(j) data.frame(x2 = gammalist[[i]]$matches1[[j]][[2]],i1 = j))))
-        i1s = pmtab1[match(matchesA,x1),i1]; i2s = pmtab2[match(matchesB,x2),i1]
+        pmtab1 = do.call(rbind,
+                  lapply(1:length(gammalist[[i]]$matches1), function(j) expand.grid.jc(gammalist[[i]]$matches1[[j]][[1]],j)))
+        pmtab2 = do.call(rbind,
+                  lapply(1:length(gammalist[[i]]$matches1), function(j) expand.grid.jc(gammalist[[i]]$matches1[[j]][[2]],j)))
+        
+        i1s = pmtab1[match(matchesA,pmtab1[,1]),2]; i2s = pmtab2[match(matchesB,pmtab2[,1]),2]
         
         doinds = which(i1s == i2s)
         gammalist2[[i]][doinds] = 1

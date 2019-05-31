@@ -213,7 +213,7 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
         '%oper%' <- foreach::'%dopar%'
         cl <- snow::makeCluster(n.cores2,type = 'SOCK')
         registerDoSNOW(cl)
-        on.exit(stopCluster(cl))
+        
       }
       
       do <- expand.grid.jc(1:n.slices,1:n.slices)
@@ -235,6 +235,10 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
                                     identical = r1==r2)
                         }
       close(pb)
+      if(n.cores2 > 1){
+        stopCluster(cl)
+        foreach::registerDoSEQ()
+      }
       
     }else{
       n.slices1 <- max(round(length(u.values.1)/(300), 0), 1) 
@@ -322,7 +326,7 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
         '%oper%' <- foreach::'%dopar%'
         cl <- snow::makeCluster(n.cores,type = 'SOCK')
         registerDoSNOW(cl)
-        on.exit(stopCluster(cl))
+       
       }
       
       pb = txtProgressBar(0,nrow(do),style = 1)
@@ -339,6 +343,10 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
                           stringvec(temp.1[[r1]], temp.2[[r2]], c(cut.a, cut.p))
                         }
       close(pb)
+      if(n.cores > 1){
+        stopCluster(cl)
+        foreach::registerDoSEQ()
+      }
     }
     
     
