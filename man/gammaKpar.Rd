@@ -14,6 +14,8 @@ gammaKpar(matAp, matBp, gender, n.cores)
 \item{gender}{Whether the matching variable is gender. Will override
 standard warnings of missingness/nonvariability. Default is FALSE.}
 
+\item{dedupe}{Logical indicator for whether internal linkage and duplication is taking place}
+
 \item{n.cores}{Number of cores to parallelize over. Default is NULL.}
 }
 \value{

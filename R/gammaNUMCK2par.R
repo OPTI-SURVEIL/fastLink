@@ -22,6 +22,7 @@
 #' g1 <- gammaNUMCK2par(dfA$birthyear, dfB$birthyear)
 #' }
 #' @export
+#' @importFrom RcppAlgos comboGeneral
 
 ## ------------------------
 ## gammaNUMCK2par: Now it takes values 0, 2
@@ -82,7 +83,7 @@ gammaNUMCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 1, dedupe = F) 
         e <- as.matrix(y[[1]])        
         
         if(identical){
-          inds = RcppAlgos::comboGeneral(1:nrow(x),2)
+          inds = comboGeneral(1:nrow(x),2)
           res <- abs(x[inds[,1]] - x[inds[,2]])
           t <- matrix(cut + 1,ncol = nrow(x),nrow = nrow(x))
           t[lower.tri(t)] = res

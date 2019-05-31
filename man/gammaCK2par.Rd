@@ -15,7 +15,18 @@ gammaCK2par(matAp, matBp, n.cores, cut.a, method, w)
 
 \item{cut.a}{Lower bound for full match, ranging between 0 and 1. Default is 0.92}
 
-\item{method}{String distance method, options are: "jw" Jaro-Winkler (Default), "jaro" Jaro, and "lv" Edit}
+\item{dedupe}{Logical. Whether internal linkage or linkage between two frames is being performed.}
+
+\item{transform}{An optional function returning transformed strings or a list of transformed strings. 
+First argument should be the strings to be transformed}
+
+\item{transform.args}{An optional list of arguments to the transform function}
+
+\item{method}{String distance method, options are: "jw" Jaro-Winkler (Default), "jaro" Jaro, and "lv" Edit. 
+May also be passed as a custom function with argument list stringdist.args. The first two arguments of 
+any custom function provided should be the strings to be compared}
+
+\item{method.args}{List of arguments for custom function provided to method}
 
 \item{w}{Parameter that describes the importance of the first characters of a string (only needed if method = "jw"). Default is .10}
 }

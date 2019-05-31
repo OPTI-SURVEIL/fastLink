@@ -14,6 +14,8 @@ gammaCKpar.}
 
 \item{nobs.b}{number of observations in dataset 2}
 
+\item{dedupe}{logical - indicator for internal linkage / deduplication of a single dataset}
+
 \item{n.cores}{Number of cores to parallelize over. Default is NULL.}
 }
 \value{

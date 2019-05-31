@@ -14,6 +14,8 @@ gammaNUMCK2par(matAp, matBp, n.cores, cut.a)
 \item{n.cores}{Number of cores to parallelize over. Default is NULL.}
 
 \item{cut.a}{Lower bound for full match. Default is 1}
+
+\item{dedupe}{Logical. Whether internal linkage or linkage between two frames is being performed.}
 }
 \value{
 \code{gammaNUMCK2par} returns a list with the indices corresponding to each

@@ -16,6 +16,8 @@ gammaNUMCKpar(matAp, matBp, n.cores, cut.a, cut.p)
 \item{cut.a}{Lower bound for full match. Default is 1}
 
 \item{cut.p}{Lower bound for partial match. Default is 2}
+
+\item{dedupe}{Logical. Whether internal linkage or linkage between two frames is being performed.}
 }
 \value{
 \code{gammaNUMCKpar} returns a list with the indices corresponding to each
