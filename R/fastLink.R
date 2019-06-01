@@ -438,8 +438,14 @@ fastLink <- function(dfA, dfB, varnames,
       trgt_count = resultsEM$p.m * sum(resultsEM$patterns.w[,'counts'])
       ordered_counts = resultsEM$patterns.w[order(resultsEM$zeta.j,decreasing = T),'counts']
       thresh_ind = which.min(abs(cumsum(ordered_counts) - trgt_count))
-      threshold.match = sort(resultsEM$zeta.j,decreasing = T)[thresh_ind]
-    }
+      threshold.match.2 = sort(resultsEM$zeta.j,decreasing = T)[thresh_ind]
+      if(threshold.match.2 < 0.5 & thresh_ind == 1){
+        cat('No patterns have match probabilities above 0.5, stopping autmatic threshold selection. \n')
+      }else{
+        threshold.match = threshold.match.2
+        cat('Selected match probability threshold is: ', threshold.match,'\n')
+      }
+     }
 
     if(max(resultsEM$zeta.j) < threshold.match) {
         warning(paste0("No matches found for the threshold value used. We recommend trying a lower threshold.match value. Note that you currently have threshold.match set to ", threshold.match, "."))
