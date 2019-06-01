@@ -19,6 +19,7 @@ License: GPL(>= 3)
 Imports:
     Matrix,
     parallel,
+    codetools,
     foreach,
     doParallel,
     doSNOW,

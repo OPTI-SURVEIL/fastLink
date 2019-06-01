@@ -17,10 +17,11 @@
 #'   stack, but may not actually be called depending on other function
 #'   parameters 
 #'
+#' @importFrom codetools findGlobals
 
 
 find_dependencies = function(f,drops = NULL,lyr = 1){
-  calls = codetools::findGlobals(f)
+  calls = findGlobals(f)
   
   calls = calls[!(calls %in% drops)]
   

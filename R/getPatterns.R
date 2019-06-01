@@ -32,23 +32,28 @@ getPatterns <- function(matchesA, matchesB, varnames,
     for(i in 1:length(gammalist)){
       mtab1 = do.call(rbind,
                 lapply(1:length(gammalist[[i]]$matches2), function(j) expand.grid.jc(gammalist[[i]]$matches2[[j]][[1]],j)))
+      mtab1 = mtab1[mtab1[,1] %in% matchesA,]
+      
       mtab2 = do.call(rbind,
                 lapply(1:length(gammalist[[i]]$matches2), function(j) expand.grid.jc(gammalist[[i]]$matches2[[j]][[2]],j)))
+      mtab2 = mtab2[mtab2[,1] %in% matchesB,]
       
-      i1s = mtab1[match(matchesA,mtab1[,1]),2]; i2s = mtab2[match(matchesB,mtab2[,1]),2]
+      hits = sapply(1:length(matchesA), function(i) any(mtab1[mtab1[,1] == matchesA[i],2] %in% mtab2[mtab2[,1] == matchesB[i],2]))
       
-      gammalist2[[i]] = (i1s == i2s) * 2
+      gammalist2[[i]] = 2 * hits
       gammalist2[[i]][matchesA %in% gammalist[[i]]$nas[[1]] | matchesB %in% gammalist[[i]]$nas[[2]]] = NA
       
       if(partial.match[i]){
         pmtab1 = do.call(rbind,
                   lapply(1:length(gammalist[[i]]$matches1), function(j) expand.grid.jc(gammalist[[i]]$matches1[[j]][[1]],j)))
+        pmtab1 = pmtab1[pmtab1[,1] %in% matchesA,]
+        
         pmtab2 = do.call(rbind,
                   lapply(1:length(gammalist[[i]]$matches1), function(j) expand.grid.jc(gammalist[[i]]$matches1[[j]][[2]],j)))
+        pmtab2 = pmtab2[pmtab2[,1] %in% matchesA,]
         
-        i1s = pmtab1[match(matchesA,pmtab1[,1]),2]; i2s = pmtab2[match(matchesB,pmtab2[,1]),2]
+        doinds = sapply(1:length(matchesA), function(i) any(pmtab1[pmtab1[,1] == matchesA[i],2] %in% pmtab2[pmtab2[,1] == matchesB[i],2]))
         
-        doinds = which(i1s == i2s)
         gammalist2[[i]][doinds] = 1
       }
         

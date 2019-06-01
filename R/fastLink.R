@@ -95,7 +95,8 @@
 #'   threshold.match = c(.85, .95) will return all pairs with posterior
 #'   probability between .85 and .95 as matches.
 #' @param auto.threshold Boolean. If set to \code{TRUE}, the default, the threshold for accepting matches is automatically calculated 
-#' to return the closest number of matches to the overall estimated proportion
+#' to return the closest number of matches to the overall estimated proportion. Will be set to FALSE if threshold.match is provided
+#' or return.all is TRUE
 #' @param return.all Whether to return the most likely match for each
 #'   observation in dfA and dfB. Overrides user setting of
 #'   \code{threshold.match} by setting \code{threshold.match} to 0.0001, and
@@ -146,7 +147,7 @@ fastLink <- function(dfA, dfB, varnames,
                      gender.field = NULL, estimate.only = FALSE, em.obj = NULL,
                      dedupe.matches = TRUE, linprog.dedupe = FALSE,
                      reweight.names = FALSE, firstname.field = NULL, cond.indep = TRUE,
-                     n.cores = NULL, tol.em = 1e-04, threshold.match = 0.85,auto.threshold = T,
+                     n.cores = NULL, tol.em = 1e-04, threshold.match = NULL,auto.threshold = T,
                      return.all = FALSE, return.df = FALSE, verbose = FALSE){
 
     cat("\n")
@@ -157,6 +158,7 @@ fastLink <- function(dfA, dfB, varnames,
     ## --------------------------------------
     ## Process inputs and stop if not correct
     ## --------------------------------------
+    
     if(any(class(dfA) %in% c("tbl_df", "data.table"))){
         dfA <- as.data.frame(dfA)
     }
@@ -271,6 +273,8 @@ fastLink <- function(dfA, dfB, varnames,
         dedupe.df <- TRUE
     }
 
+    if(!is.null(threshold.match) || return.all == T) auto.threshold = F
+    
     ## Create boolean indicators
     sm.bool <- which(varnames %in% stringdist.match)
     stringdist.match <- rep(FALSE, length(varnames))
@@ -438,11 +442,11 @@ fastLink <- function(dfA, dfB, varnames,
       trgt_count = resultsEM$p.m * sum(resultsEM$patterns.w[,'counts'])
       ordered_counts = resultsEM$patterns.w[order(resultsEM$zeta.j,decreasing = T),'counts']
       thresh_ind = which.min(abs(cumsum(ordered_counts) - trgt_count))
-      threshold.match.2 = sort(resultsEM$zeta.j,decreasing = T)[thresh_ind]
-      if(threshold.match.2 < 0.5 & thresh_ind == 1){
-        cat('No patterns have match probabilities above 0.5, stopping autmatic threshold selection. \n')
+      threshold.match = sort(resultsEM$zeta.j,decreasing = T)[thresh_ind]
+      if(threshold.match < 0.5 & thresh_ind == 1){
+        cat('No patterns have match probabilities above 0.5. Setting threshold to 0.85 and returning no matches. \n')
+        threshold.match = 0.85
       }else{
-        threshold.match = threshold.match.2
         cat('Selected match probability threshold is: ', threshold.match,'\n')
       }
      }
@@ -472,7 +476,6 @@ fastLink <- function(dfA, dfB, varnames,
         patterns <- getPatterns(matchesA = matches$inds.a, matchesB = matches$inds.b,
                                 varnames = varnames, partial.match = partial.match,
                                 gammalist = gammalist)
-        
         ## Run deduplication
         if(dedupe.matches & length(matches$inds.a) > 0){
             cat("Deduping the estimated matches.\n")

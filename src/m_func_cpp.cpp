@@ -50,7 +50,7 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
             arma::vec temp0_ = temp0.elem(find(s0_bool2 == true));
             arma::vec temp1_ = temp1.elem(find(s1_bool2 == true));
             
-            int i; int j; // Expand grid, declare size of matrix
+            unsigned i; unsigned j; // Expand grid, declare size of matrix
             int jlow = 0;
             
             int rowcount = 0;
@@ -73,7 +73,7 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
           }
         }else{
           // Rcout << "identical is false" << std::endl;
-          int i; int j;// Expand grid, declare size of matrix
+          unsigned i; unsigned j;// Expand grid, declare size of matrix
           int rowcount = 0;
           
           index_out.set_size(temp0.n_elem * temp1.n_elem, 2);
@@ -87,7 +87,7 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
         }
       }else{
         // Rcout << "dedupe is false" << std::endl;
-        int i; int j;// Expand grid, declare size of matrix
+        unsigned i; unsigned j;// Expand grid, declare size of matrix
         int rowcount = 0;
         
         index_out.set_size(temp0.n_elem * temp1.n_elem, 2);
@@ -149,7 +149,7 @@ std::vector<SpMat> unpack_matches(const std::vector< std::vector<arma::mat> > x,
 				  const arma::vec dims, const bool match){
 
   // Declare objects
-  int len_x = x.size(); int i; int j; int k; std::vector<arma::mat> feature_adj;
+  int len_x = x.size(); int i; unsigned j; unsigned k; std::vector<arma::mat> feature_adj;
   int matrix_length; 
   std::vector<SpMat> list_out(len_x); arma::mat adj_store;
   double val; arma::mat feature_adj_j;
@@ -205,7 +205,7 @@ std::vector<SpMat> unpack_matches(const std::vector< std::vector<arma::mat> > x,
 
 arma::vec getNotIn(const arma::vec vec1, const arma::vec vec2){
 
-  int i; int j; bool match; arma::vec store_notin(vec1.n_elem); int counter = 0;
+  unsigned i; unsigned j; bool match; arma::vec store_notin(vec1.n_elem); int counter = 0;
   for(i = 0; i < vec1.n_elem; i++){
     match = false;
     for(j = 0; j < vec2.n_elem; j++){
@@ -228,7 +228,8 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
 				    const arma::vec dims, const arma::vec lowerlims, const bool dedupe){
 //lowerlims is the lower index of each dimension
 
-  int i; int j; int k; double val; const int nobs_a = dims[0]; const int nobs_b = dims[1];
+  int i; unsigned j; //unsigned k; 
+  double val; const int nobs_a = dims[0]; const int nobs_b = dims[1];
   arma::vec nas_a; arma::vec nas_b; std::vector<SpMat> list_out(nas.size());
   arma::vec nobs_a_notnull_inb; std::vector<arma::vec> nas_extract(2);
 
@@ -237,8 +238,9 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
   for(i = 0; i < nobs_a; i++){
     nobs_a_vec[i] = i+1;
   }
-  //iterating over fields
-  for(i = 0; i < nas.size(); i++){
+  //iterating over 
+  int nassize = nas.size();
+  for(i = 0; i < nassize; i++){
 
     // Get exponent value
     val = std::pow(2.0, 3 + (i * 3));
@@ -263,7 +265,7 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
       //j_hat = i_hat + lowerlim[0]-lowerlim[1] + 1: end  
       
       for(j = 0; j < nas_a.size(); j++){
-        for(k = std::max(0.0,nas_a[j] + lowerlims(0) - lowerlims(1)); k < nobs_b; k++){
+        for(int k = std::max(0.0,nas_a[j] + lowerlims(0) - lowerlims(1)); k < nobs_b; k++){
           tripletList.push_back(Trip(nas_a[j]-1, k, val));
         }
       }
@@ -275,12 +277,13 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
       // Create triplet
       tripletList.reserve(nas_a.size() * nobs_b + nas_b.size() * nobs_a);
       for(j = 0; j < nas_a.size(); j++){
-        for(k = 0; k < nobs_b; k++){
+        for(int k = 0; k < nobs_b; k++){
           tripletList.push_back(Trip(nas_a[j]-1, k, val));
         }
       }
+      
       for(j = 0; j < nas_b.size(); j++){
-        for(k = 0; k < nobs_a_notnull_inb.size(); k++){
+        for(unsigned k = 0; k < nobs_a_notnull_inb.size(); k++){
           tripletList.push_back(Trip(nobs_a_notnull_inb[k]-1, nas_b[j]-1, val));
         }
       }
@@ -321,7 +324,7 @@ std::vector<arma::vec> m_func(const std::vector< std::vector<arma::mat> > matche
   SpMat sp(lims(0), lims(1));
   SpMat match_pmatch(lims(0), lims(1));
   SpMat match_pmatch_na(lims(0), lims(1)); //creating sparse matrices of approp dimension
-  int i;
+  unsigned i;
   for(i = 0; i < matches_up.size(); i++){ //iterating over fields
     match_pmatch = matches_up[i] + pmatches_up[i];
     match_pmatch_na = match_pmatch + nas_sp[i];
@@ -427,7 +430,7 @@ std::vector< std::vector<arma::vec> > m_func_par(const std::vector< std::vector<
 	<< std::endl;
 #pragma omp parallel for private(n, m, temp_feature, ptemp_feature, ident_feature) firstprivate(lims, lims_2, templist, ptemplist, natemplist, mf_out)
 #endif
-  for(int i = 0; i < ind.n_rows; i++){
+  for(unsigned i = 0; i < ind.n_rows; i++){
 
     // Get indices of the rows
     n = ind(i,0)-1; m = ind(i, 1)-1;
@@ -435,7 +438,7 @@ std::vector< std::vector<arma::vec> > m_func_par(const std::vector< std::vector<
     lims_2(0) = limit1(n), lims_2(1) = limit2(m); //start
     
     // Loop over the number of features
-    for(int j = 0; j < temp.size(); j++){
+    for(unsigned j = 0; j < temp.size(); j++){
 
       // Within this, loop over the list of each feature
       temp_feature = temp[j];
@@ -443,7 +446,7 @@ std::vector< std::vector<arma::vec> > m_func_par(const std::vector< std::vector<
       ident_feature = identical[j];
       std::vector<arma::mat> indlist(temp_feature.size());
       std::vector<arma::mat> pindlist(ptemp_feature.size());
-      int k;
+      unsigned k;
       for(k = 0; k < temp_feature.size(); k++){
     	if(temp_feature.size() > 0){
     	  indlist[k] = indexing(temp_feature[k], limit1[n], limit1[n+1],

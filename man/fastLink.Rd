@@ -122,7 +122,8 @@ threshold.match = c(.85, .95) will return all pairs with posterior
 probability between .85 and .95 as matches.}
 
 \item{auto.threshold}{Boolean. If set to \code{TRUE}, the default, the threshold for accepting matches is automatically calculated 
-to return the closest number of matches to the overall estimated proportion}
+to return the closest number of matches to the overall estimated proportion. Will be set to FALSE if threshold.match is provided
+or return.all is TRUE}
 
 \item{return.all}{Whether to return the most likely match for each
 observation in dfA and dfB. Overrides user setting of
