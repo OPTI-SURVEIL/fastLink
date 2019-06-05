@@ -450,7 +450,7 @@ fastLink <- function(dfA, dfB, varnames,
         cat('Selected match probability threshold is: ', threshold.match,'\n')
       }
      }
-
+    resultsEM$threshold.match = threshold.match
     if(max(resultsEM$zeta.j) < threshold.match) {
         warning(paste0("No matches found for the threshold value used. We recommend trying a lower threshold.match value. Note that you currently have threshold.match set to ", threshold.match, "."))
     }
