@@ -69,6 +69,10 @@ gammaKpar <- function(matAp, matBp, gender = FALSE, dedupe = F,n.cores = NULL) {
     matrix.1[is.na(matrix.1)] <- "9999"
     matrix.2[is.na(matrix.2)] <- "9998"
 
+    na.list <- list()
+    na.list[[1]] <- which(matrix.1 == "9999")
+    na.list[[2]] <- which(matrix.2 == "9998")
+    
     u.values.1 <- unique(matrix.1)
     u.values.2 <- unique(matrix.2)
 
@@ -79,33 +83,36 @@ gammaKpar <- function(matAp, matBp, gender = FALSE, dedupe = F,n.cores = NULL) {
     ht1 <- new.env(hash=TRUE)
     ht2 <- new.env(hash=TRUE)
     matches.l <- as.list(matches)
+    out <- list()
     
-    if(Sys.info()[['sysname']] == "Windows") {
-      if (n.cores == 1) '%oper%' <- foreach::'%do%'
-      else { 
-        '%oper%' <- foreach::'%dopar%'
-        cl <- makeCluster(n.cores)
-        registerDoParallel(cl)
-        on.exit(stopCluster(cl))
+    if(length(matches.l) > 0){
+      if(Sys.info()[['sysname']] == "Windows") {
+        if (n.cores == 1) '%oper%' <- foreach::'%do%'
+        else { 
+          '%oper%' <- foreach::'%dopar%'
+          cl <- makeCluster(n.cores)
+          registerDoParallel(cl)
+          on.exit(stopCluster(cl))
+        }
+        
+        final.list <- foreach(i = 1:length(matches.l)) %oper% {
+          ht1 <- which(matrix.1 == matches.l[[i]]); ht2 <- which(matrix.2 == matches.l[[i]])
+          list(ht1, ht2)
+        }
+        
+      } else {
+        final.list <- mclapply(matches.l, function(s){
+          ht1[[s]] <- which(matrix.1 == s); ht2[[s]] <- which(matrix.2 == s);
+          list(ht1[[s]], ht2[[s]]) }, mc.cores = getOption("mc.cores", n.cores))
       }
       
-      final.list <- foreach(i = 1:length(matches.l)) %oper% {
-        ht1 <- which(matrix.1 == matches.l[[i]]); ht2 <- which(matrix.2 == matches.l[[i]])
-        list(ht1, ht2)
-      }
       
-    } else {
-      final.list <- mclapply(matches.l, function(s){
-        ht1[[s]] <- which(matrix.1 == s); ht2[[s]] <- which(matrix.2 == s);
-        list(ht1[[s]], ht2[[s]]) }, mc.cores = getOption("mc.cores", n.cores))
+      out[["matches2"]] <- final.list
+    }else{
+      out[["matches2"]] <- vector(length = 0,mode = 'list') 
     }
     
-    na.list <- list()
-    na.list[[1]] <- which(matrix.1 == "9999")
-    na.list[[2]] <- which(matrix.2 == "9998")
-
-    out <- list()
-    out[["matches2"]] <- final.list
+    
     out[["nas"]] <- na.list
     out[['.identical']] <- .identical
     class(out) <- c("fastLink", "gammaKpar")
