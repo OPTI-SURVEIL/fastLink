@@ -82,7 +82,7 @@ emlinklog <- function(patterns, nobs.a, nobs.b,
     nfeatures <- sum(keep)
     
     ## Patterns:
-    gamma.j.k <- as.matrix(patterns[, keep])
+    gamma.j.k <- as.matrix(patterns[, which(keep)])
 
     ## Patterns counts:
     n.j <- as.matrix(patterns[, 'counts'])  # Counts
