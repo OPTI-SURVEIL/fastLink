@@ -75,8 +75,8 @@ emlinklog <- function(patterns, nobs.a, nobs.b,
     if(is.null(nrow(patterns))){
         patterns <- as.data.frame(t(as.matrix(patterns)))
     }
-    
-    keep = sapply(1:(ncol(patterns)-1),function(j) length(unique(patterns[,j])) > 1)
+    nvar = length(varnames)
+    keep = sapply(1:nvar,function(j) length(unique(patterns[,j])) > 1)
     
     ## Number of fields
     nfeatures <- sum(keep)
@@ -85,7 +85,7 @@ emlinklog <- function(patterns, nobs.a, nobs.b,
     gamma.j.k <- as.matrix(patterns[, keep])
 
     ## Patterns counts:
-    n.j <- as.matrix(patterns[, ncol(patterns)])  # Counts
+    n.j <- as.matrix(patterns[, 'counts'])  # Counts
     
     ## Number of unique patterns:
     N <- nrow(gamma.j.k)
