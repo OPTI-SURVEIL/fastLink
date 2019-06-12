@@ -19,7 +19,7 @@ Default is 0.85.}
 
 \item{combine.dfs}{Whether to combine the two data frames being merged into a single data frame. If FALSE, two data frames are returned in a list. Default is TRUE.}
 
-\item{twolineformat}{Boolean. Whether to  return a single dataframe with each matched pair presented in subsequent rows, with spaces separating the pairs. Only works if \code{combine.dfs = FALSE}}
+\item{inspect.matches}{Boolean. Whether to  return a single dataframe with each matched pair presented in subsequent rows, with spaces separating the pairs. Overrides \code{combine.dfs}}
 }
 \value{
 \code{getMatches()} returns a list of two data frames:
@@ -29,7 +29,10 @@ Default is 0.85.}
 \description{
 Subset two data frames to the matches returned by \code{fastLink()}
 or \code{matchesLink()}. Can also return a single deduped data frame
-if dfA and dfB are identical and fl.out is of class 'fastLink.dedupe'.
+if dfA and dfB are identical and fl.out is of class 'fastLink.dedupe'. 
+The deduped data frame contains an extra column, \code{prior.indices}, 
+which contains NA values for all rows not identified as duplicates, and otherwise 
+lists the row indices of all prior rows linked to the current row.
 }
 \examples{
 \dontrun{
