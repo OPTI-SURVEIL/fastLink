@@ -15,7 +15,7 @@ pattern. This object is produced by the function: tableCounts.}
 
 \item{nobs.b}{Number of observations in dataset B}
 
-\item{p.m}{probability of finding a match. Default is 0.1}
+\item{p.m}{probability of finding a match. Default is min(c(nobs.a,nobs.b)/(nobs.a*nobs.b))}
 
 \item{p.gamma.j.m}{probability that conditional of being in the matched set we observed a specific agreement pattern.}
 

@@ -16,7 +16,7 @@ pattern. This object is produced by the function: tableCounts.}
 
 \item{nobs.b}{Number of observations in dataset B}
 
-\item{p.m}{probability of finding a match. Default is 0.1}
+\item{p.m}{probability of finding a match. Default is min(c(nobs.a,nobs.b)/(nobs.a*nobs.b))}
 
 \item{iter.max}{Max number of iterations. Default is 5000}
 

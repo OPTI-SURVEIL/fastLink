@@ -17,7 +17,7 @@ getMatches(dfA, dfB, fl.out, threshold.match, combine.dfs)
 user wants to declare a match. For instance, threshold.match = .85 will return all pairs with posterior probability greater than .85 as matches.
 Default is 0.85.}
 
-\item{combine.dfs}{Whether to combine the two data frames being merged into a single data frame. If FALSE, two data frames are returned in a list. Default is TRUE.}
+\item{combine.dfs}{Whether to combine the two data frames being merged into a single data frame. If FALSE, two data frames are returned in a list. Does nothing in the case of deduping a single dataframe. Default is TRUE.}
 
 \item{inspect.matches}{Boolean. Whether to  return a single dataframe with each matched pair presented in subsequent rows, with spaces separating the pairs. Overrides \code{combine.dfs}}
 }

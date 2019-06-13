@@ -10,7 +10,7 @@
 #' pattern. This object is produced by the function: tableCounts.
 #' @param nobs.a Number of observations in dataset A
 #' @param nobs.b Number of observations in dataset B
-#' @param p.m probability of finding a match. Default is 0.1
+#' @param p.m probability of finding a match. Default is min(c(nobs.a,nobs.b)/(nobs.a*nobs.b))
 #' @param p.gamma.j.m probability that conditional of being in the matched set we observed a specific agreement pattern.
 #' @param p.gamma.j.u probability that conditional of being in the non-matched set we observed a specific agreement pattern.
 #' @param iter.max Max number of iterations. Default is 5000
@@ -50,12 +50,12 @@
 #' @importFrom gtools rdirichlet
 #' @importFrom stats glm model.matrix
 emlinklog <- function(patterns, nobs.a, nobs.b,
-                      p.m = 0.1, p.gamma.j.m = NULL, p.gamma.j.u = NULL, iter.max = 5000, tol = 1e-5, varnames = NULL) {
+                      p.m = NULL, p.gamma.j.m = NULL, p.gamma.j.u = NULL, iter.max = 5000, tol = 1e-5, varnames = NULL) {
 
     ## OPTIONS  
     ## patterns <- tc; nobs.a <- nrow(dfA); nobs.a <- nrow(dfB); p.m <- 0.1; iter.max = 5000; 
     ## tol = 1e-5; p.gamma.k.m = NULL; p.gamma.k.u = NULL
-
+    if(is.null(p.m)) p.m = min(c(nobs.a,nobs.b)/(nobs.a*nobs.b))
     options(digits=16)
     
     ## EM Algorithm for a Fellegi-Sunter model that accounts for missing data (under MAR)
