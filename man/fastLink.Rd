@@ -86,6 +86,10 @@ EM object will be returned. Can be used when running the match on a random
 sample and applying to a larger dataset, or for out-of-sample prediction of
 matches. Default is FALSE.}
 
+\item{counts.only}{Whether to stop running the algorithm after counting agreement patterns. 
+Will return the frequency table used in the EM aglorithm, as well as the list of matching indices for each field, 
+which may be used to retrieve matches at later points. Default is FALSE.}
+
 \item{em.obj}{An EM object from a prior run of 'fastLink' or 'emlinkMARmov'.
 Parameter estimates will be applied to the matching patterns in 'dfA' and
 'dfB'. If provided. 'estimate.only' is set to FALSE. Often provided when

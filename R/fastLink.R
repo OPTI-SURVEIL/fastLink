@@ -68,6 +68,9 @@
 #'   EM object will be returned. Can be used when running the match on a random
 #'   sample and applying to a larger dataset, or for out-of-sample prediction of
 #'   matches. Default is FALSE.
+#' @param counts.only Whether to stop running the algorithm after counting agreement patterns. 
+#' Will return the frequency table used in the EM aglorithm, as well as the list of matching indices for each field, 
+#' which may be used to retrieve matches at later points. Default is FALSE.
 #' @param em.obj An EM object from a prior run of 'fastLink' or 'emlinkMARmov'.
 #'   Parameter estimates will be applied to the matching patterns in 'dfA' and
 #'   'dfB'. If provided. 'estimate.only' is set to FALSE. Often provided when
@@ -144,7 +147,7 @@ fastLink <- function(dfA, dfB, varnames,
                      cut.a.num = 1, cut.p.num = 2.5,
                      priors.obj = NULL,
                      w.lambda = NULL, w.pi = NULL, address.field = NULL,
-                     gender.field = NULL, estimate.only = FALSE, em.obj = NULL,
+                     gender.field = NULL, estimate.only = FALSE, counts.only = FALSE, em.obj = NULL,
                      dedupe.matches = TRUE, linprog.dedupe = FALSE,
                      reweight.names = FALSE, firstname.field = NULL, cond.indep = TRUE,
                      n.cores = NULL, tol.em = 1e-04, threshold.match = NULL,auto.threshold = T,
@@ -393,6 +396,11 @@ fastLink <- function(dfA, dfB, varnames,
     end <- Sys.time()
     if(verbose){
         cat("Getting counts for parameter estimation took", round(difftime(end, start, units = "mins"), 2), "minutes.\n\n")
+    }
+    if(counts.only){
+      out = list(patterns = counts,
+                 gammalist = gammalist)
+      return(out)
     }
 
     ## ------------------------------
