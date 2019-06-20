@@ -84,7 +84,7 @@ gammaKpar <- function(matAp, matBp, gender = FALSE, dedupe = F,n.cores = NULL) {
     ht2 <- new.env(hash=TRUE)
     matches.l <- as.list(matches)
     out <- list()
-    
+    if(length(matches) < 100) n.cores = 1
     if(length(matches.l) > 0){
       if(Sys.info()[['sysname']] == "Windows") {
         if (n.cores == 1) '%oper%' <- foreach::'%do%'

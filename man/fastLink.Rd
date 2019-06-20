@@ -16,6 +16,9 @@ fastLink(dfA, dfB, varnames, stringdist.match, stringdist.method,
 
 \item{dfB}{Dataset B - to be matched to Dataset A}
 
+\item{blocklist}{An optional list of blocks of record pairs produced by blockData. If included, agreement patterns are counted within each block,
+then aggregated together prior to EM.}
+
 \item{varnames}{A vector of variable names to use for matching. Must be
 present in both dfA and dfB}
 

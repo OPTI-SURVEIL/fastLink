@@ -421,7 +421,7 @@ std::vector< std::vector<arma::vec> > m_func_par(const std::vector< std::vector<
   arma::vec lims_2(2);
   
   // Declare pragma environment
-#ifdef _OPENMP
+#if defined(_OPENMP) && threads > 1
   omp_set_num_threads(threads);
   int threadsused = omp_get_max_threads();
   Rcout << "    Parallelizing calculation using OpenMP. "
