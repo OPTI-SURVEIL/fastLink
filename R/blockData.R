@@ -166,10 +166,10 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
     ## --------------
     cat("Combining blocked variables for final blocking assignments.\n\n")
     combineblocks_out <- combineBlocks(gammalist)
-    indlist_a <- apply(combineblocks_out$dfA.block, 2, function(x){which(x == 1)})
-    indlist_a <- indlist_a[lapply(indlist_a, length) > 0]
-    indlist_b <- apply(combineblocks_out$dfB.block, 2, function(x){which(x == 1)})
-    indlist_b <- indlist_b[lapply(indlist_b, length) > 0]
+    indlist_a <- which(combineblocks_out$dfA.block, arr.ind = T)
+    indlist_a <- tapply(indlist_a[,1],indlist_a[,2], function(x) x)
+    indlist_b <- which(combineblocks_out$dfB.block, arr.ind = T)
+    indlist_b <- tapply(indlist_b[,1],indlist_b[,2], function(x) x)
     
     ## Clean up
     blocklist_out <- vector(mode = "list", length = length(indlist_a))
