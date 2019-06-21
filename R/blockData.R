@@ -74,7 +74,7 @@ stringSubset <- function(vecA, vecB,
 #' @param varnames A vector of variable names to use for blocking.
 #' Must be present in both dfA and dfB
 #' @param window.block A vector of variable names indicating that the variable should be
-#' blocked using windowing blocking. Must be present in varnames.
+#' blocked using windowing blocking. Must be present in varnames. If dfA and dfB are identical, the window blocks are deduplicated
 #' @param window.size The size of the window for window blocking. Default is 1
 #' (observations +/- 1 on the specified variable will be blocked together).
 #' @param kmeans.block A vector of variable names indicating that the variable should be
@@ -114,6 +114,9 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
     if(any(class(dfB) %in% c("tbl_df", "data.table"))){
         dfB <- as.data.frame(dfB)
     }
+    
+    dedupe = identical(dfA,dfB)
+    
     if(any(!(varnames %in% names(dfA)))){
         stop("Some variables in varnames are not present in dfA.")
     }
@@ -133,7 +136,7 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
         stop("You have specified that a variable be blocked using window blocking, but that variable is not of class 'numeric'. Please check your variable classes.")
     }
     if(is.null(n.cores)){
-        n.cores <- detectCores() - 1
+        n.cores <- parallel::detectCores() - 1
     }
     
     
@@ -146,7 +149,7 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
         blocktype <- ifelse(varnames[i] %in% window.block, "window", ifelse(varnames[i] %in% kmeans.block, "k-means", "exact"))
         cat("    Blocking variable", varnames[i], "using", blocktype, "blocking.\n")
         if(varnames[i] %in% window.block){
-            gammalist[[i]] <- gammaNUMCK2par(dfA[,varnames[i]], dfB[,varnames[i]], n.cores = n.cores, cut.a = window.size)
+            gammalist[[i]] <- gammaNUMCK2par(dfA[,varnames[i]], dfB[,varnames[i]], n.cores = n.cores, cut.a = window.size,dedupe = dedupe)
         }else if(varnames[i] %in% kmeans.block){
             gammalist[[i]] <- kmeansBlock(dfA[,varnames[i]], dfB[,varnames[i]],
                                           nclusters = nclusters,
@@ -172,6 +175,10 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
     blocklist_out <- vector(mode = "list", length = length(indlist_a))
     for(i in 1:length(blocklist_out)){
         blocklist_out[[i]] <- list(dfA.inds = indlist_a[[i]], dfB.inds = indlist_b[[i]])
+    }
+    if(dedupe){
+      lengths = sapply(blocklist_out,function(l) length(l$dfA.inds) * length(l$dfB.inds))
+      blocklist_out = blocklist_out[lengths>1]
     }
     names(blocklist_out) <- paste0("block.", 1:length(blocklist_out))
     class(blocklist_out) <- "fastLink.block"
