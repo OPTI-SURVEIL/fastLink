@@ -55,7 +55,8 @@ emlinklog <- function(patterns, nobs.a, nobs.b,
     ## OPTIONS  
     ## patterns <- tc; nobs.a <- nrow(dfA); nobs.a <- nrow(dfB); p.m <- 0.1; iter.max = 5000; 
     ## tol = 1e-5; p.gamma.k.m = NULL; p.gamma.k.u = NULL
-    if(is.null(p.m)) p.m = min(c(nobs.a,nobs.b)/(nobs.a*nobs.b))
+    if(is.null(p.m)) p.m = min(c(nobs.a,nobs.b)/sum(patterns[,'counts']))
+    if(p.m > 1) p.m = 0.5
     options(digits=16)
     
     ## EM Algorithm for a Fellegi-Sunter model that accounts for missing data (under MAR)

@@ -66,7 +66,8 @@ emlinkMARmov <- function(patterns, nobs.a, nobs.b,
                          prior.pi = NULL, w.pi = NULL, address.field = NULL,
                          gender.field = NULL, varnames = NULL) {
     
-    if(is.null(p.m)) p.m = min(c(nobs.a,nobs.b)/(nobs.a*nobs.b))
+  if(is.null(p.m)) p.m = min(c(nobs.a,nobs.b)/sum(patterns[,'counts']))
+  if(p.m > 1) p.m = 0.5
   
     options(digits=16)
 
