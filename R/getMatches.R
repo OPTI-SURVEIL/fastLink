@@ -66,8 +66,9 @@ getMatches <- function(dfA, dfB, fl.out, threshold.match = 0.85, combine.dfs = T
             out <- list(dfA.match = dfA.match, dfB.match = dfB.match)
         }
     }else if(inherits(fl.out,'fastLink') && inspect.matches){
-      dfA.match <- dfA[fl.out$matches$inds.a,]
-      dfB.match <- dfB[fl.out$matches$inds.b,]
+      varnames = fl.out$EM$varnames
+      dfA.match <- dfA[fl.out$matches$inds.a,varnames]
+      dfB.match <- dfB[fl.out$matches$inds.b,varnames]
       
       combinedframe = matrix('',nrow = nrow(dfA.match) * 4, ncol = ncol(dfA.match) + 1 + 'posterior' %in% names(fl.out))
       namevec = c('row.index',names(dfA.match),'p_match')
