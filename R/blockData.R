@@ -82,6 +82,10 @@ stringSubset <- function(vecA, vecB,
 #' @param nclusters Number of clusters to create with k-means. Default value is the
 #' number of clusters where the average cluster size is 100,000 observations.
 #' @param iter.max Maximum number of iterations for the k-means algorithm to run. Default is 5000
+#' @param combine.method Defines the way in which blocks based on multiple variables are combined.
+#' The default option, "AND", requires all blocking conditions to be met. 
+#' The alternative option, "OR", requires at least one blocking condition to be met, 
+#' and may provide higher sensitivity while maintaining reduction in the number of comparisons to be made during linkage.
 #' @param n.cores Number of cores to parallelize over. Default is NULL.
 #'
 #' @return A list with an entry for each block. Each list entry contains two vectors --- one with the indices indicating the block members in dataset A,
@@ -97,7 +101,7 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
                       window.size = 1,
                       kmeans.block = NULL,
                       nclusters = max(round(min(nrow(dfA), nrow(dfB)) / 100000, 0), 1),                      
-                      iter.max = 5000,
+                      iter.max = 5000, 
                       n.cores = NULL){
 
     cat("\n")
@@ -159,7 +163,64 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
             gammalist[[i]] <- gammaKpar(dfA[,varnames[i]], dfB[,varnames[i]], gender = FALSE, n.cores = n.cores)
         }
     }
+    #add comparisons of all missing indices to all nonmissing, and to each other
+    na.lists = lapply(gammalist, '[[','nas')
+    allinds = list(1:nrow(dfA), 1:nrow(dfB))
+    
+    for(i in 1:length(varnames)){
+      sublist = na.lists[[i]]
+      
+      nas.present = sapply(sublist, length) > 0
+      if(dedupe){
+        if(!nas.present[[1]]) next
+        na.inds = sublist[[1]]
+        comp.inds = allinds[[1]][-na.inds]
+        
+        templist = list(
+          list(comp.inds, na.inds),
+          list(na.inds, na.inds)
+        )
+        
+      }else{
+        templist = vector(mode = 'list', length = sum(nas.present))
+        for(j in 1:2){
+          if(!nas.present[j]) next
+          na.inds = sublist[[j]]
+          comp.inds = allinds[[3-j]]
+          templist[[j]] = vector(mode = 'list', length = 2)
+          templist[[j]][[j]] = na.inds
+          templist[[j]][[3-j]] = comp.inds
+          }
+      }
+      gammalist[[i]]$matches2 = c(gammalist[[i]]$matches2, templist)
+    }
+    
+    
     cat("\n")
+    # if(combine.method == 'AND') pat_template = c(NA,2)
+    # if(combine.method == 'OR') pat_template = c(NA,0,2)
+    #   
+    # str = paste0('expand.grid(',paste(rep('pat_template',length(varnames)),collapse = ','),')')
+    # patts = eval(parse(text = str))
+    # patts = patts[apply(patts,1,sum,na.rm=T)>0,]
+    # patts = cbind(patts,100)
+    # zeta.j = rep(0,nrow(patts))
+    # weights = rep(0,nrow(patts))
+    # 
+    # block_groups = vector(mode = 'list', length = nrow(patts))
+    # for(i in 1:nrow(patts)){
+    #   zeta.j_ = zeta.j
+    #   zeta.j_[i] = 1
+    #   weights_ = weights
+    #   weights_[i] = 100
+    #   
+    #   em = list(patterns.w = cbind(patts,weights),zeta.j = zeta.j_)
+    #   block_groups[[i]] = matchesLink(gammalist, nobs.a = nrow(dfA), nobs.b = nrow(dfB),
+    #                                   em = em, thresh = 1,
+    #                                   n.cores = n.cores, dedupe = dedupe)
+    # } Problem - too many record pairs!
+    
+    
     
     ## --------------
     ## Combine blocks
@@ -186,49 +247,96 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
     
 }
 
+is.prime <- function(x)
+  vapply(x, function(y) sum(y / 1:y == y %/% 1:y), integer(1L)) == 2L
+
+
 combineBlocks <- function(blocklist){
+  if(length(blocklist) > 1){
+    primes = (2:500)[is.prime(2:500)]
     
-    blkgrps <- NULL
+    allindsA = vector(mode = 'list', length = length(blocklist))
+    allindsB = vector(mode = 'list', length = length(blocklist))
     
-    ## Unpack
-    str <- ""
     for(i in 1:length(blocklist)){
-        str <- paste0(str, "block.", i, "=1:", length(blocklist[[i]][[1]]), ",")
-    }
-    str <- paste0("blkgrps <- expand.grid(", str, "stringsAsFactors = FALSE)")
-    eval(parse(text = str))
-    
-    ## Get indices for each block
-    indsA_out <- vector(mode = "list", length = nrow(blkgrps))
-    indsB_out <- vector(mode = "list", length = nrow(blkgrps))
-    for(i in 1:nrow(blkgrps)){
-        
-        indsA <- vector(mode = "list", length = ncol(blkgrps))
-        indsB <- vector(mode = "list", length = ncol(blkgrps))
-        for(j in 1:ncol(blkgrps)){
-            indsA[[j]] <- blocklist[[j]][[1]][[blkgrps[i,j]]][[1]]
-            indsB[[j]] <- blocklist[[j]][[1]][[blkgrps[i,j]]][[2]]
-        }
-        indsA_intersect <- Reduce(intersect, indsA)
-        indsB_intersect <- Reduce(intersect, indsB)
-        if(length(indsA_intersect) > 0 & length(indsB_intersect) > 0){
-            indsA_out[[i]] <- cbind(indsA_intersect, i)
-            indsB_out[[i]] <- cbind(indsB_intersect, i)
-        }
-        
+      allindsA[[i]] = do.call(rbind,lapply(1:length(blocklist[[i]][[1]]), function(j) cbind(blocklist[[i]][[1]][[j]][[1]],j)))
+      allindsB[[i]] = do.call(rbind,lapply(1:length(blocklist[[i]][[1]]), function(j) cbind(blocklist[[i]][[1]][[j]][[2]],j)))
     }
     
-    ## Combine indices and create sparse matrix outputs
-    indsA_out <- do.call(rbind, indsA_out)
-    indsB_out <- do.call(rbind, indsB_out)
-    matA_out <- sparseMatrix(i = indsA_out[,1], j = indsA_out[,2])
-    matB_out <- sparseMatrix(i = indsB_out[,1], j = indsB_out[,2])
+    levs = length(blocklist)
     
-    out <- list(dfA.block = matA_out, dfB.block = matB_out)
-    class(out) <- "fastLink.block"
-    return(out)
+    block_combos = lapply(levs,function(l){
+      domats = RcppAlgos::comboGeneral(1:length(blocklist),l)
+      
+      blockmats = vector(mode = 'list', length = nrow(domats))
+      
+      for(i in 1:nrow(domats)){
+        i_ = domats[i,]
+        overlapsA = as.data.frame(allindsA[[i_[1]]])
+        for(n in 2:length(i_))
+          overlapsA = merge(overlapsA, as.data.frame(allindsA[[i_[n]]]), by = 'V1')
+        
+        overlapsA = overlapsA[,-1]
+        
+        idA = as.matrix(overlapsA) %*% log(primes[1:length(i_)])
+        
+        overlapsA = overlapsA[!duplicated(idA),]
+        idA = idA[!duplicated(idA)]
+        
+        overlapsB = as.data.frame(allindsB[[i_[1]]])
+        for(n in 2:length(i_))
+          overlapsB = merge(overlapsB, as.data.frame(allindsB[[i_[n]]]), by = 'V1')
+        
+        overlapsB = overlapsB[,-1]
+        
+        idB = as.matrix(overlapsB) %*% log(primes[1:length(i_)])
+        overlapsB = overlapsA[!duplicated(idB),]
+        idB = idB[!duplicated(idB)]
+        
+        blockmats[[i]] = overlapsA[which(idA %in% idB),]
+        
+      }
+      list(domat = domats, blockmats = blockmats)
+    })
     
-}
+    
+    blkgrps = block_combos[[1]]$blockmats[[1]]
+  }else blkgrps = matrix(1:length(blocklist[[1]][[1]]),ncol = 1)
+  
+  indsA_out <- vector(mode = "list", length = nrow(blkgrps))
+  indsB_out <- vector(mode = "list", length = nrow(blkgrps))
+  indsA <- vector(mode = "list", length = ncol(blkgrps))
+  indsB <- vector(mode = "list", length = ncol(blkgrps))
+    
+  for(i in 1:nrow(blkgrps)){
+      
+    for(j in 1:ncol(blkgrps)){
+      indsA[[j]] <- blocklist[[j]][[1]][[blkgrps[i,j]]][[1]]
+      indsB[[j]] <- blocklist[[j]][[1]][[blkgrps[i,j]]][[2]]
+    }
+    indsA_intersect <- Reduce(intersect, indsA)
+    if(length(indsA_intersect) == 0) next
+    indsB_intersect <- Reduce(intersect, indsB)
+    if(length(indsB_intersect) == 0) next
+    
+    indsA_out[[i]] <- cbind(indsA_intersect, i)
+    indsB_out[[i]] <- cbind(indsB_intersect, i)
+    
+  }
+    
+  indsA_out <- do.call(rbind, indsA_out)
+  indsB_out <- do.call(rbind, indsB_out)
+  matA_out <- sparseMatrix(i = indsA_out[,1], j = indsA_out[,2])
+  matB_out <- sparseMatrix(i = indsB_out[,1], j = indsB_out[,2])
+    
+  out <- list(dfA.block = matA_out, dfB.block = matB_out)
+  class(out) <- "fastLink.block"
+  return(out)
+  }
+  
+  
+  
+
 
 kmeansBlock <- function(vecA, vecB, nclusters, iter.max, n.cores){
     

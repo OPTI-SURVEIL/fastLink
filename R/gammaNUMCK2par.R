@@ -88,6 +88,7 @@ gammaNUMCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 1, dedupe = F) 
           t <- matrix(cut + 1,ncol = nrow(x),nrow = nrow(x))
           t[lower.tri(t)] = res
           diag(t) <- 0
+          diag(t)[x == end.points[2]] <- cut[1] + 1 #keep out NAs
         }else{
           t <- calcPWDcpp(as.matrix(x), as.matrix(e))
         }

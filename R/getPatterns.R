@@ -34,11 +34,11 @@ getPatterns <- function(matchesA, matchesB, varnames,
       if(length(gammalist[[i]]$matches2) > 0){
         mtab1 = do.call(rbind,
                         lapply(1:length(gammalist[[i]]$matches2), function(j) expand.grid.jc(gammalist[[i]]$matches2[[j]][[1]],j)))
-        mtab1 = mtab1[mtab1[,1] %in% matchesA,]
+        mtab1 = matrix(mtab1[mtab1[,1] %in% matchesA,],ncol = 2)
         
         mtab2 = do.call(rbind,
                         lapply(1:length(gammalist[[i]]$matches2), function(j) expand.grid.jc(gammalist[[i]]$matches2[[j]][[2]],j)))
-        mtab2 = mtab2[mtab2[,1] %in% matchesB,]
+        mtab2 = matrix(mtab2[mtab2[,1] %in% matchesB,],ncol = 2)
         
         hits = sapply(1:length(matchesA), function(i) any(mtab1[mtab1[,1] == matchesA[i],2] %in% mtab2[mtab2[,1] == matchesB[i],2]))
       }
