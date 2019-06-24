@@ -159,7 +159,7 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
     cat(c(paste(rep("=", 20), sep = "", collapse = ""), "\n"))
     cat("fastLink(): Fast Probabilistic Record Linkage\n")
     cat(c(paste(rep("=", 20), sep = "", collapse = ""), "\n\n"))
-
+    blocked = F
     if(!is.null(blocklist)){
       blocked = T
       blocklist = lapply(blocklist,function(b){
