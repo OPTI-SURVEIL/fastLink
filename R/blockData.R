@@ -72,7 +72,7 @@ stringSubset <- function(vecA, vecB,
 #' @param dfA Dataset A - to be matched to Dataset B
 #' @param dfB Dataset B - to be matched to Dataset A
 #' @param varnames A vector of variable names to use for blocking.
-#' Must be present in both dfA and dfB
+#' Must be present in both dfA and dfB. Blocks for each variable will be combined conjunctively, i.e. EACH blocking condition has to be true
 #' @param window.block A vector of variable names indicating that the variable should be
 #' blocked using windowing blocking. Must be present in varnames. If dfA and dfB are identical, the window blocks are deduplicated
 #' @param window.size The size of the window for window blocking. Default is 1
@@ -82,10 +82,6 @@ stringSubset <- function(vecA, vecB,
 #' @param nclusters Number of clusters to create with k-means. Default value is the
 #' number of clusters where the average cluster size is 100,000 observations.
 #' @param iter.max Maximum number of iterations for the k-means algorithm to run. Default is 5000
-#' @param combine.method Defines the way in which blocks based on multiple variables are combined.
-#' The default option, "AND", requires all blocking conditions to be met. 
-#' The alternative option, "OR", requires at least one blocking condition to be met, 
-#' and may provide higher sensitivity while maintaining reduction in the number of comparisons to be made during linkage.
 #' @param n.cores Number of cores to parallelize over. Default is NULL.
 #'
 #' @return A list with an entry for each block. Each list entry contains two vectors --- one with the indices indicating the block members in dataset A,
@@ -362,3 +358,396 @@ kmeansBlock <- function(vecA, vecB, nclusters, iter.max, n.cores){
     return(out)
     
 }
+
+#' consolidate_blocks
+#'
+#' Allows for disjunctive blocking using multiple criteria, i.e. ONE OR MORE blocking conditions must be met
+#'
+#' @usage consolidate_blocks(blocklist1, blocklist2, ..., dedupe = F)
+#' @param ... Any number of blocklists output by \code{blockData()}, separated by commas
+#' @param dedupe Boolean indicator as to whether the blocks represent an internal linkage problem (\code{TRUE}) or linkage between two datasets (\code{FALSE})
+#'
+#' @return A list of non-overlapping blocks covering the same record pairs as the original inputs
+#'
+#' @usage
+#' \dontrun{
+#' blocks_sex_OR_yob <- consolidate_blocks(blocks_sex, blocks_yob, dedupe = T)
+#' }
+#'
+#' @export
+
+consolidate_blocks = function(...,dedupe = F){
+  blocklist = unique(c(...))
+  
+  #step 1: combine blocks that fully overlap in dimension A
+  {
+    Ainds = do.call(rbind,lapply(1:length(blocklist),function(i){
+      cbind(blocklist[[i]]$dfA.inds,i)
+    }))
+    
+    Ablockmat = sparseMatrix(i = Ainds[,1], j = Ainds[,2], x = 1)
+    
+    pwrs = seq(0,10,length.out = nrow(Ablockmat))
+    
+    blockkey = matrix(2^pwrs,nrow = 1)
+    
+    Akeys = (blockkey %*% Ablockmat)[1,]
+    
+    dup.keys = unique(Akeys[duplicated(Akeys)])
+    
+    inds = which(Akeys %in% dup.keys)
+    if(length(inds) > 0){
+      consolidate_a = tapply(inds,Akeys[inds],function(x)x)
+      
+      cat('Step 1: Combining fully overlapped dfA blocks \n')
+      pb = txtProgressBar(0,length(consolidate_a))
+      i = 1
+      
+      for(v in consolidate_a){
+        templist = list(dfA.inds = blocklist[[v[1]]]$dfA.inds,
+                        dfB.inds = unique(do.call(c,lapply(v, function(i) blocklist[[i]]$dfB.inds))))
+        
+        blocklist[[v[1]]] = templist
+        
+        setTxtProgressBar(pb,i)
+        i = i+1
+      }
+      close(pb)
+      dumpinds = unlist(lapply(consolidate_a, '[',-1))
+      blocklist = blocklist[-dumpinds]
+    }
+  }
+  #step 2: combine blocks that fully overlap in dimension B
+  {
+    Binds = do.call(rbind,lapply(1:length(blocklist),function(i){
+      cbind(blocklist[[i]]$dfB.inds,i)
+    }))
+    
+    Bblockmat = sparseMatrix(i = Binds[,1], j = Binds[,2], x = 1)
+    
+    pwrs = seq(0,10,length.out = nrow(Bblockmat))
+    
+    blockkey = matrix(2^pwrs,nrow = 1)
+    
+    Bkeys = (blockkey %*% Bblockmat)[1,]
+    
+    dup.keys = unique(Bkeys[duplicated(Bkeys)])
+    
+    inds = which(Bkeys %in% dup.keys)
+    if(length(inds)>0){
+      consolidate_b = tapply(inds,Bkeys[inds],function(x)x)
+      
+      cat('Step 2: Combining fully overlapped dfB blocks \n')
+      pb = txtProgressBar(0,length(consolidate_b))
+      i = 1
+      for(v in consolidate_b){
+        templist = list(dfA.inds = unique(do.call(c,lapply(v, function(i) blocklist[[i]]$dfA.inds))),
+                        dfB.inds = blocklist[[v[1]]]$dfB.inds)
+        
+        blocklist[[v[1]]] = templist
+        
+        setTxtProgressBar(pb,i)
+        i = i+1
+      }
+      close(pb)
+      dumpinds = unlist(lapply(consolidate_b, '[',-1))
+      blocklist = blocklist[-dumpinds]
+    }
+    
+  }
+  ##Step 3: reduce blocks with dimension A fully contained in another block
+  swtch1 = 1
+  swtch2 = 1
+  while(swtch1 + swtch2 > 0){
+    Ainds = do.call(rbind,lapply(1:length(blocklist),function(i){
+      cbind(blocklist[[i]]$dfA.inds,i)
+    }))
+    
+    Binds = do.call(rbind,lapply(1:length(blocklist),function(i){
+      cbind(blocklist[[i]]$dfB.inds,i)
+    }))  
+    
+    Ablockmat = sparseMatrix(i = Ainds[,1], j = Ainds[,2], x = 1)
+    Bblockmat = sparseMatrix(i = Binds[,1], j = Binds[,2], x = 1)
+    nA = sapply(blocklist,function(l) length(l$dfA.inds))
+    
+    Acomps = triu(t(Ablockmat) %*% Ablockmat, k = 1)
+    Bcomps = triu(t(Bblockmat) %*% Bblockmat, k = 1)
+    
+    nAcomp = (Acomps * (Bcomps>0))@x
+    
+    overlaps = which(Acomps * Bcomps>0,arr.ind = T)
+    nAs = overlaps
+    nAs[] = nA[nAs]
+    
+    todo = matrix(overlaps[pmin(nAs[,1],nAs[,2])==nAcomp,],ncol = 2)
+    if(nrow(todo)>0){
+      swtch1 = 1
+      
+      donors = apply(nAs[pmin(nAs[,1],nAs[,2])==nAcomp,], 1, which.min)
+      todo = cbind(todo[cbind(1:nrow(todo), donors)],todo[cbind(1:nrow(todo), 3-donors)])
+      
+      cat('Step 3: Reducing partially contained dfA blocks \n')
+      pb = txtProgressBar(0,nrow(todo))
+      del_list = NULL
+      
+      for(i in 1:nrow(todo)){
+        donor = blocklist[[todo[i,1]]]; receiver = blocklist[[todo[i,2]]]
+        
+        b_olap = intersect(donor$dfB.inds, receiver$dfB.inds)
+        b_resid = setdiff(donor$dfB.inds, b_olap)
+        
+        if(length(b_resid) == 0){del_list = c(del_list, todo[i,1]); next}
+        
+        blocklist[[todo[i,1]]]$dfB.inds = b_resid
+        setTxtProgressBar(pb, i)
+      }
+      close(pb)
+      del_list = unique(del_list)
+      if(!is.null(del_list)) blocklist = blocklist[-del_list]
+      
+    }else{
+      swtch1 = 0
+    }
+    
+    ###Step 4: reduce blocks with dimension B fully contained in another block
+    
+    Ainds = do.call(rbind,lapply(1:length(blocklist),function(i){
+      cbind(blocklist[[i]]$dfA.inds,i)
+    }))
+    
+    Binds = do.call(rbind,lapply(1:length(blocklist),function(i){
+      cbind(blocklist[[i]]$dfB.inds,i)
+    }))  
+    
+    Ablockmat = sparseMatrix(i = Ainds[,1], j = Ainds[,2], x = 1)
+    Bblockmat = sparseMatrix(i = Binds[,1], j = Binds[,2], x = 1)
+    
+    nB = sapply(blocklist,function(l) length(l$dfB.inds))
+    
+    Acomps = triu(t(Ablockmat) %*% Ablockmat, k = 1)
+    Bcomps = triu(t(Bblockmat) %*% Bblockmat, k = 1)
+    
+    nBcomp = (Bcomps * (Acomps > 0))@x
+    
+    overlaps = which(Acomps * Bcomps>0,arr.ind = T)
+    nBs = overlaps
+    nBs[] = nB[nBs]
+    
+    todo = matrix(overlaps[pmin(nBs[,1],nBs[,2])==nBcomp,],ncol = 2)
+    
+    if(nrow(todo) > 0){
+      swtch2 = 1
+      donors = apply(matrix(nBs[pmin(nBs[,1],nBs[,2])==nBcomp,],ncol = 2), 1, which.min)
+      todo = cbind(todo[cbind(1:nrow(todo), donors)],todo[cbind(1:nrow(todo), 3-donors)])
+      
+      cat('Step 4: Reducing partially contained dfB blocks \n')
+      pb = txtProgressBar(0,nrow(todo))
+      del_list = NULL
+      
+      for(i in 1:nrow(todo)){
+        donor = blocklist[[todo[i,1]]]; receiver = blocklist[[todo[i,2]]]
+        
+        a_olap = intersect(donor$dfA.inds, receiver$dfA.inds)
+        a_resid = setdiff(donor$dfA.inds, a_olap)
+        
+        if(length(a_resid) == 0){del_list = c(del_list, todo[i,1]); next}
+        
+        blocklist[[todo[i,1]]]$dfA.inds = a_resid
+        setTxtProgressBar(pb, i)
+      }
+      close(pb)
+      del_list = unique(del_list)
+      if(!is.null(del_list)) blocklist = blocklist[-del_list]
+    }else{
+      swtch2 = 0
+    }
+    
+  }
+  
+  
+  #Step 5a: if dedupe is true, go ahead and separate out blocks on the diagonal
+  
+  if(dedupe){
+    resolve_diag = sapply(blocklist,function(l){
+      !identical(l$dfA.inds,l$dfB.inds) & any(l$dfA.inds %in% l$dfB.inds)
+    })
+    if(sum(resolve_diag) > 0){
+      templists = vector(mode = 'list', length = sum(resolve_diag))
+      
+      cat('Step 5a: separating blocks along diagonal from rectangular blocks \n')
+      pb = txtProgressBar(0,sum(resolve_diag))
+      
+      i = 1
+      for(lst in blocklist[resolve_diag]){
+        diag_inds = intersect(lst$dfA.inds,lst$dfB.inds)
+        
+        rem_A = setdiff(lst$dfA.inds,diag_inds)
+        rem_B = setdiff(lst$dfB.inds,diag_inds)
+        
+        indicator = length(rem_A) > 0 + 2*(length(rem_B) > 0)
+        
+        templists[[i]] = list(list(dfA.inds = diag_inds, dfB.inds = diag_inds))
+        
+        if(indicator == 1)
+          templists[[i]] = list(list(dfA.inds = diag_inds, dfB.inds = diag_inds), 
+                                list(dfA.inds = rem_A, dfB.inds = diag_inds))
+        if(indicator == 2)
+          templists[[i]] = list(list(dfA.inds = diag_inds, dfB.inds = diag_inds), 
+                                list(dfA.inds = diag_inds, dfB.inds = rem_B))
+        
+        if(indicator == 3){
+          templists[[i]] = list(list(dfA.inds = diag_inds, dfB.inds = diag_inds), 
+                                list(dfA.inds = rem_A, dfB.inds = diag_inds),
+                                list(dfA.inds = lst$dfA.inds, dfB.inds = rem_B))
+        }
+        
+        setTxtProgressBar(pb,i)
+        i = i+1
+      }
+      close(pb)
+      
+      templists = unlist(templists,recursive = F)
+      
+      blocklist = blocklist[!resolve_diag]
+      blocklist = c(blocklist,templists)
+    }
+  }
+  
+  #Step 5: Resolve overlapping blocks
+  
+  Ainds = do.call(rbind,lapply(1:length(blocklist),function(i){
+    cbind(blocklist[[i]]$dfA.inds,i)
+  }))
+  
+  Ablockmat = sparseMatrix(i = Ainds[,1], j = Ainds[,2], x = 1)
+  
+  Acomps = triu(t(Ablockmat) %*% Ablockmat, k = 1)
+  
+  Binds = do.call(rbind,lapply(1:length(blocklist),function(i){
+    cbind(blocklist[[i]]$dfB.inds,i)
+  }))
+  
+  Bblockmat = sparseMatrix(i = Binds[,1], j = Binds[,2], x = 1)
+  
+  Bcomps = triu(t(Bblockmat) %*% Bblockmat, k = 1)
+  
+  overlaps = which(Bcomps * Acomps > 0, arr.ind = T)
+  
+  nrp = sapply(blocklist,function(l) as.numeric(length(l$dfB.inds)) * as.numeric(length(l$dfA.inds)))
+  olap_nrp = (Bcomps * Acomps)@x
+  
+  nrps = overlaps
+  nrps[] = nrp[nrps]
+  
+  donors = apply(nrps,1,which.min)
+  
+  overlaps = cbind(overlaps[cbind(1:nrow(overlaps),donors)],overlaps[cbind(1:nrow(overlaps),3-donors)])
+  
+  donors = unique(overlaps[,1])
+  
+  donors = donors[order(nrp[donors])]
+  
+  cat('Step 5: Resolving remaining overlap between blocks \n')
+  
+  i = 1
+  pb = txtProgressBar(0,length(donors))
+  for(d in donors){
+    templist = blocklist[[d]]
+    
+    todo = matrix(overlaps[overlaps[,1] == d,],ncol = 2)
+    todo = matrix(todo[order(olap_nrp[overlaps[,1] == d], decreasing = T),],ncol =2)
+    
+    olaps_a = lapply(1:nrow(todo), function(i){
+      l2 = blocklist[[todo[i,2]]]
+      intersect(templist$dfA.inds,l2$dfA.inds)
+    })
+    
+    olaps_b = lapply(1:nrow(todo), function(i){
+      l2 = blocklist[[todo[i,2]]]
+      intersect(templist$dfB.inds,l2$dfB.inds)
+    })
+    
+    templist = list(templist)
+    
+    for(ii in 1:nrow(todo)){
+      do = sapply(templist, function(l) any(olaps_a[[ii]] %in% l$dfA.inds) && any(olaps_a[[ii]] %in% l$dfB.inds))
+      if(!any(do)) next
+      
+      rem_A = lapply(templist[do], function(l) setdiff(l$dfA.inds, olaps_a[[ii]]))
+      ol_A = lapply(templist[do], function(l) intersect(l$dfA.inds, olaps_a[[ii]]))
+      rem_B = lapply(templist[do], function(l) setdiff(l$dfB.inds, olaps_b[[ii]]))
+      ol_B = lapply(templist[do], function(l) intersect(l$dfB.inds, olaps_b[[ii]]))
+      
+      
+      templist[do] = lapply(1:sum(do), function(i){
+        l = templist[do][[i]]
+        dupe_i = identical(l$dfA.inds,l$dfB.inds)
+        dupe_j = identical(ol_A[[i]],ol_B[[i]])
+        
+        indicator = (length(rem_A[[i]])>0) + 2*(length(rem_B[[i]])>0)
+        
+        if(indicator == 0) return(NULL)
+        if(indicator == 1) return(list(list(
+          dfA.inds = rem_A[[i]], dfB.inds = l$dfB.inds
+        )))
+        if(indicator == 2) return(list(list(
+          dfA.inds = l$dfA.inds, dfB.inds = rem_B[[i]]
+        )))
+        if(indicator == 3){
+          indicator2 = dupe_i + 2 * dupe_j
+          
+          if(indicator2 %in% c(0,2)){
+            res1 = list(dfA.inds = ol_A[[i]], dfB.inds = rem_B[[i]])
+            res2 = list(dfA.inds = rem_A[[i]], dfB.inds = l$dfB.inds)
+            return(list(res1,res2)[c(length(rem_B[[i]])>0, length(rem_A[[i]]) > 0)])
+          }
+          
+          if(indicator2 == 1){
+            res1 = list(dfA.inds = ol_A[[i]], dfB.inds = ol_A[[i]])
+            res2 = list(dfA.inds = rem_A[[i]], dfB.inds = rem_A[[i]])
+            res3 = list(dfA.inds = ol_A[[i]], dfB.inds = setdiff(l$dfB.inds,c(rem_B[[i]],rem_A[[i]])))
+            return(list(res1,res2,res3)[c(length(ol_A[[i]])>1, length(rem_A[[i]])>1,length(res3$dfB.inds)>0)])
+          }
+          
+          if(indicator2 == 3){
+            res1 = list(dfA.inds = rem_A[[i]], dfB.inds = rem_A[[i]])
+            res2 = list(dfA.inds = ol_A[[i]], dfB.inds = rem_B[[i]])
+            return(list(res1,res2)[c(length(rem_A[[i]])>1, length(rem_B[[i]])>0)])
+          }
+        }})
+      templist = c(unlist(templist[do], recursive = F),templist[!do])
+      templist = templist[sapply(templist,length)>0]
+      
+    }
+    blocklist = c(blocklist, templist)
+    
+    setTxtProgressBar(pb,i)
+    i = i+1
+  }
+  close(pb)
+  
+  blocklist = blocklist[-donors]
+  
+  # Make sure all overlap has been eliminated
+  # Ainds = do.call(rbind,lapply(1:length(blocklist),function(i){
+  #   cbind(blocklist[[i]]$dfA.inds,i)
+  # }))
+  # 
+  # Ablockmat = sparseMatrix(i = Ainds[,1], j = Ainds[,2], x = 1)
+  # 
+  # Acomps = triu(t(Ablockmat) %*% Ablockmat,k = 1)
+  # 
+  # Binds = do.call(rbind,lapply(1:length(blocklist),function(i){
+  #   cbind(blocklist[[i]]$dfB.inds,i)
+  # }))
+  # 
+  # Bblockmat = sparseMatrix(i = Binds[,1], j = Binds[,2], x = 1)
+  # 
+  # Bcomps = triu(t(Bblockmat) %*% Bblockmat, k = 1)
+  # 
+  # overlaps = which(Bcomps * Acomps > 0, arr.ind = T)
+  
+  return(blocklist)
+}
+

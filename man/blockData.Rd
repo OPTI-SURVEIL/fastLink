@@ -13,10 +13,10 @@ kmeans.block, nclusters, iter.max, n.cores)
 \item{dfB}{Dataset B - to be matched to Dataset A}
 
 \item{varnames}{A vector of variable names to use for blocking.
-Must be present in both dfA and dfB}
+Must be present in both dfA and dfB. Blocks for each variable will be combined conjunctively, i.e. EACH blocking condition has to be true}
 
 \item{window.block}{A vector of variable names indicating that the variable should be
-blocked using windowing blocking. Must be present in varnames.}
+blocked using windowing blocking. Must be present in varnames. If dfA and dfB are identical, the window blocks are deduplicated}
 
 \item{window.size}{The size of the window for window blocking. Default is 1
 (observations +/- 1 on the specified variable will be blocked together).}
