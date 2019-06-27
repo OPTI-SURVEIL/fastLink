@@ -727,7 +727,7 @@ consolidate_blocks = function(...,dedupe = F){
   }
   close(pb)
   
-  blocklist = blocklist[-donors]
+  if(length(donors)>0) blocklist = blocklist[-donors]
   
   # Make sure all overlap has been eliminated
   # Ainds = do.call(rbind,lapply(1:length(blocklist),function(i){
