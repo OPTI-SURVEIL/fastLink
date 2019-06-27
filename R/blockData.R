@@ -585,7 +585,7 @@ consolidate_blocks = function(...,dedupe = F){
         rem_A = setdiff(lst$dfA.inds,diag_inds)
         rem_B = setdiff(lst$dfB.inds,diag_inds)
         
-        indicator = length(rem_A) > 0 + 2*(length(rem_B) > 0)
+        indicator = (length(rem_A) > 0) + 2*(length(rem_B) > 0)
         
         templists[[i]] = list(list(dfA.inds = diag_inds, dfB.inds = diag_inds))
         
@@ -633,121 +633,252 @@ consolidate_blocks = function(...,dedupe = F){
   Bcomps = triu(t(Bblockmat) %*% Bblockmat, k = 1)
   
   overlaps = which(Bcomps * Acomps > 0, arr.ind = T)
-  
-  nrp = sapply(blocklist,function(l) as.numeric(length(l$dfB.inds)) * as.numeric(length(l$dfA.inds)))
-  olap_nrp = (Bcomps * Acomps)@x
-  
-  nrps = overlaps
-  nrps[] = nrp[nrps]
-  
-  donors = apply(nrps,1,which.min)
-  
-  overlaps = cbind(overlaps[cbind(1:nrow(overlaps),donors)],overlaps[cbind(1:nrow(overlaps),3-donors)])
-  
-  donors = unique(overlaps[,1])
-  
-  donors = donors[order(nrp[donors])]
-  
-  cat('Step 5: Resolving remaining overlap between blocks \n')
-  
-  i = 1
-  pb = txtProgressBar(0,length(donors))
-  for(d in donors){
-    templist = blocklist[[d]]
+  pass = 1
+  while(nrow(overlaps)>0){
+    nrp = sapply(blocklist,function(l) as.numeric(length(l$dfB.inds)) * as.numeric(length(l$dfA.inds)))
+    olap_nrp = (Bcomps * Acomps)@x
     
-    todo = matrix(overlaps[overlaps[,1] == d,],ncol = 2)
-    todo = matrix(todo[order(olap_nrp[overlaps[,1] == d], decreasing = T),],ncol =2)
+    nrps = overlaps
+    nrps[] = nrp[nrps]
     
-    olaps_a = lapply(1:nrow(todo), function(i){
-      l2 = blocklist[[todo[i,2]]]
-      intersect(templist$dfA.inds,l2$dfA.inds)
-    })
+    donors = apply(nrps,1,which.min)
     
-    olaps_b = lapply(1:nrow(todo), function(i){
-      l2 = blocklist[[todo[i,2]]]
-      intersect(templist$dfB.inds,l2$dfB.inds)
-    })
     
-    templist = list(templist)
     
-    for(ii in 1:nrow(todo)){
-      do = sapply(templist, function(l) any(olaps_a[[ii]] %in% l$dfA.inds) && any(olaps_a[[ii]] %in% l$dfB.inds))
-      if(!any(do)) next
+    overlaps = cbind(overlaps[cbind(1:nrow(overlaps),donors)],overlaps[cbind(1:nrow(overlaps),3-donors)])
+    
+    donors = unique(overlaps[,1])
+    
+    donors = donors[order(nrp[donors], decreasing = T)]
+    
+    cat('Step 5: Resolving remaining overlap between blocks, pass', pass,'\n')
+    
+    i = 1
+    pb = txtProgressBar(0,length(donors))
+    for(d in donors){
+      templist = blocklist[[d]]
       
-      rem_A = lapply(templist[do], function(l) setdiff(l$dfA.inds, olaps_a[[ii]]))
-      ol_A = lapply(templist[do], function(l) intersect(l$dfA.inds, olaps_a[[ii]]))
-      rem_B = lapply(templist[do], function(l) setdiff(l$dfB.inds, olaps_b[[ii]]))
-      ol_B = lapply(templist[do], function(l) intersect(l$dfB.inds, olaps_b[[ii]]))
+      todo = matrix(overlaps[overlaps[,1] == d,],ncol = 2)
+      todo = matrix(todo[order(olap_nrp[overlaps[,1] == d], decreasing = T),],ncol =2)
       
+      olaps_a = lapply(1:nrow(todo), function(i){
+        l2 = blocklist[[todo[i,2]]]
+        intersect(templist$dfA.inds,l2$dfA.inds)
+      })
       
-      templist[do] = lapply(1:sum(do), function(i){
-        l = templist[do][[i]]
-        dupe_i = identical(l$dfA.inds,l$dfB.inds)
-        dupe_j = identical(ol_A[[i]],ol_B[[i]])
+      olaps_b = lapply(1:nrow(todo), function(i){
+        l2 = blocklist[[todo[i,2]]]
+        intersect(templist$dfB.inds,l2$dfB.inds)
+      })
+      
+      templist = list(templist)
+      
+      for(ii in 1:nrow(todo)){
+        do = sapply(templist, function(l) any(olaps_a[[ii]] %in% l$dfA.inds) && any(olaps_b[[ii]] %in% l$dfB.inds))
+        if(!any(do)) next
         
-        indicator = (length(rem_A[[i]])>0) + 2*(length(rem_B[[i]])>0)
+        rem_A = lapply(templist[do], function(l) setdiff(l$dfA.inds, olaps_a[[ii]]))
+        ol_A = lapply(templist[do], function(l) intersect(l$dfA.inds, olaps_a[[ii]]))
+        rem_B = lapply(templist[do], function(l) setdiff(l$dfB.inds, olaps_b[[ii]]))
+        ol_B = lapply(templist[do], function(l) intersect(l$dfB.inds, olaps_b[[ii]]))
         
-        if(indicator == 0) return(NULL)
-        if(indicator == 1) return(list(list(
-          dfA.inds = rem_A[[i]], dfB.inds = l$dfB.inds
-        )))
-        if(indicator == 2) return(list(list(
-          dfA.inds = l$dfA.inds, dfB.inds = rem_B[[i]]
-        )))
-        if(indicator == 3){
-          indicator2 = dupe_i + 2 * dupe_j
+        
+        templist[do] = lapply(1:sum(do), function(i){
+          l = templist[do][[i]]
+          dupe_i = identical(l$dfA.inds,l$dfB.inds)
+          dupe_j = identical(ol_A[[i]],ol_B[[i]])
           
-          if(indicator2 %in% c(0,2)){
-            res1 = list(dfA.inds = ol_A[[i]], dfB.inds = rem_B[[i]])
-            res2 = list(dfA.inds = rem_A[[i]], dfB.inds = l$dfB.inds)
-            return(list(res1,res2)[c(length(rem_B[[i]])>0, length(rem_A[[i]]) > 0)])
-          }
+          indicator = (length(rem_A[[i]])>0) + 2*(length(rem_B[[i]])>0)
           
-          if(indicator2 == 1){
-            res1 = list(dfA.inds = ol_A[[i]], dfB.inds = ol_A[[i]])
-            res2 = list(dfA.inds = rem_A[[i]], dfB.inds = rem_A[[i]])
-            res3 = list(dfA.inds = ol_A[[i]], dfB.inds = setdiff(l$dfB.inds,c(rem_B[[i]],rem_A[[i]])))
-            return(list(res1,res2,res3)[c(length(ol_A[[i]])>1, length(rem_A[[i]])>1,length(res3$dfB.inds)>0)])
-          }
-          
-          if(indicator2 == 3){
-            res1 = list(dfA.inds = rem_A[[i]], dfB.inds = rem_A[[i]])
-            res2 = list(dfA.inds = ol_A[[i]], dfB.inds = rem_B[[i]])
-            return(list(res1,res2)[c(length(rem_A[[i]])>1, length(rem_B[[i]])>0)])
-          }
-        }})
-      templist = c(unlist(templist[do], recursive = F),templist[!do])
-      templist = templist[sapply(templist,length)>0]
+          if(indicator == 0) return(NULL)
+          if(indicator == 1) return(list(list(
+            dfA.inds = rem_A[[i]], dfB.inds = l$dfB.inds
+          )))
+          if(indicator == 2) return(list(list(
+            dfA.inds = l$dfA.inds, dfB.inds = rem_B[[i]]
+          )))
+          if(indicator == 3){
+            indicator2 = dupe_i + 2 * dupe_j
+            
+            if(indicator2 %in% c(0,2)){
+              res1 = list(dfA.inds = ol_A[[i]], dfB.inds = rem_B[[i]])
+              res2 = list(dfA.inds = rem_A[[i]], dfB.inds = l$dfB.inds)
+              return(list(res1,res2)[c(length(rem_B[[i]])>0, length(rem_A[[i]]) > 0)])
+            }
+            
+            if(indicator2 == 1){
+              res1 = list(dfA.inds = ol_A[[i]], dfB.inds = ol_A[[i]])
+              res2 = list(dfA.inds = rem_A[[i]], dfB.inds = rem_A[[i]])
+              res3 = list(dfA.inds = ol_A[[i]], dfB.inds = setdiff(l$dfB.inds,c(rem_B[[i]],rem_A[[i]])))
+              return(list(res1,res2,res3)[c(length(ol_A[[i]])>1, length(rem_A[[i]])>1,length(res3$dfB.inds)>0)])
+            }
+            
+            if(indicator2 == 3){
+              res1 = list(dfA.inds = rem_A[[i]], dfB.inds = rem_A[[i]])
+              res2 = list(dfA.inds = ol_A[[i]], dfB.inds = rem_B[[i]])
+              return(list(res1,res2)[c(length(rem_A[[i]])>1, length(rem_B[[i]])>0)])
+            }
+          }})
+        templist = c(unlist(templist[do], recursive = F),templist[!do])
+        templist = templist[sapply(templist,length)>0]
+        
+      }
+      blocklist = c(blocklist, templist)
       
+      setTxtProgressBar(pb,i)
+      i = i+1
     }
-    blocklist = c(blocklist, templist)
+    close(pb)
     
-    setTxtProgressBar(pb,i)
-    i = i+1
+    blocklist = blocklist[-donors]
+    
+    # Make sure all overlap has been eliminated
+    Ainds = do.call(rbind,lapply(1:length(blocklist),function(i){
+      cbind(blocklist[[i]]$dfA.inds,i)
+    }))
+    
+    Ablockmat = sparseMatrix(i = Ainds[,1], j = Ainds[,2], x = 1)
+    
+    Acomps = triu(t(Ablockmat) %*% Ablockmat,k = 1)
+    
+    Binds = do.call(rbind,lapply(1:length(blocklist),function(i){
+      cbind(blocklist[[i]]$dfB.inds,i)
+    }))
+    
+    Bblockmat = sparseMatrix(i = Binds[,1], j = Binds[,2], x = 1)
+    
+    Bcomps = triu(t(Bblockmat) %*% Bblockmat, k = 1)
+    
+    overlaps = which(Bcomps * Acomps > 0, arr.ind = T)
+    pass = pass + 1
+    cat(sum(Bcomps * Acomps),' overlapping record pairs remain \n')
   }
-  close(pb)
-  
-  if(length(donors)>0) blocklist = blocklist[-donors]
-  
-  # Make sure all overlap has been eliminated
-  # Ainds = do.call(rbind,lapply(1:length(blocklist),function(i){
-  #   cbind(blocklist[[i]]$dfA.inds,i)
-  # }))
-  # 
-  # Ablockmat = sparseMatrix(i = Ainds[,1], j = Ainds[,2], x = 1)
-  # 
-  # Acomps = triu(t(Ablockmat) %*% Ablockmat,k = 1)
-  # 
-  # Binds = do.call(rbind,lapply(1:length(blocklist),function(i){
-  #   cbind(blocklist[[i]]$dfB.inds,i)
-  # }))
-  # 
-  # Bblockmat = sparseMatrix(i = Binds[,1], j = Binds[,2], x = 1)
-  # 
-  # Bcomps = triu(t(Bblockmat) %*% Bblockmat, k = 1)
-  # 
-  # overlaps = which(Bcomps * Acomps > 0, arr.ind = T)
-  
+  #Step 6, remove redundant record pairs that got scrambled A-B if dedupe is true
+  if(dedupe){
+    
+    ABcomps = triu(t(Ablockmat) %*% Bblockmat, k = 1)
+    BAcomps = triu(t(Bblockmat) %*% Ablockmat, k = 1)
+    
+    overlaps = which(ABcomps * BAcomps > 0, arr.ind = T)
+    
+    pass = 1
+    while(nrow(overlaps)>0){
+      nrp = sapply(blocklist,function(l) as.numeric(length(l$dfB.inds)) * as.numeric(length(l$dfA.inds)))
+      olap_nrp = (ABcomps * BAcomps)@x
+      
+      nrps = overlaps
+      nrps[] = nrp[nrps]
+      
+      donors = apply(nrps,1,which.min)
+      
+      overlaps = cbind(overlaps[cbind(1:nrow(overlaps),donors)],overlaps[cbind(1:nrow(overlaps),3-donors)])
+      
+      donors = unique(overlaps[,1])
+      
+      donors = donors[order(nrp[donors], decreasing = T)]
+      
+      cat('Step 6: Resolving redundancies where indices are switched between dfA and dfB, pass', pass,'\n')
+      
+      i = 1
+      pb = txtProgressBar(0,length(donors))
+      for(d in donors){
+        templist = blocklist[[d]]
+        
+        todo = matrix(overlaps[overlaps[,1] == d,],ncol = 2)
+        todo = matrix(todo[order(olap_nrp[overlaps[,1] == d], decreasing = T),],ncol =2)
+        
+        olaps_ab = lapply(1:nrow(todo), function(i){
+          l2 = blocklist[[todo[i,2]]]
+          intersect(templist$dfA.inds,l2$dfB.inds)
+        })
+        
+        olaps_ba = lapply(1:nrow(todo), function(i){
+          l2 = blocklist[[todo[i,2]]]
+          intersect(templist$dfB.inds,l2$dfA.inds)
+        })
+        
+        templist = list(templist)
+        
+        for(ii in 1:nrow(todo)){
+          do = sapply(templist, function(l) any(olaps_ab[[ii]] %in% l$dfA.inds) && any(olaps_ba[[ii]] %in% l$dfB.inds))
+          if(!any(do)) next
+          
+          rem_A = lapply(templist[do], function(l) setdiff(l$dfA.inds, olaps_ab[[ii]]))
+          ol_A = lapply(templist[do], function(l) intersect(l$dfA.inds, olaps_ab[[ii]]))
+          rem_B = lapply(templist[do], function(l) setdiff(l$dfB.inds, olaps_ba[[ii]]))
+          ol_B = lapply(templist[do], function(l) intersect(l$dfB.inds, olaps_ba[[ii]]))
+          
+          templist[do] = lapply(1:sum(do), function(i){
+            l = templist[do][[i]]
+            dupe_i = identical(l$dfA.inds,l$dfB.inds)
+            dupe_j = identical(ol_A[[i]],ol_B[[i]])
+            
+            indicator = (length(rem_A[[i]])>0) + 2*(length(rem_B[[i]])>0)
+            
+            if(indicator == 0) return(NULL)
+            if(indicator == 1) return(list(list(
+              dfA.inds = rem_A[[i]], dfB.inds = l$dfB.inds
+            )))
+            if(indicator == 2) return(list(list(
+              dfA.inds = l$dfA.inds, dfB.inds = rem_B[[i]]
+            )))
+            if(indicator == 3){
+              indicator2 = dupe_i + 2 * dupe_j
+              
+              if(indicator2 %in% c(0,2)){
+                res1 = list(dfA.inds = ol_A[[i]], dfB.inds = rem_B[[i]])
+                res2 = list(dfA.inds = rem_A[[i]], dfB.inds = l$dfB.inds)
+                return(list(res1,res2)[c(length(rem_B[[i]])>0, length(rem_A[[i]]) > 0)])
+              }
+              
+              if(indicator2 == 1){
+                res1 = list(dfA.inds = ol_A[[i]], dfB.inds = ol_A[[i]])
+                res2 = list(dfA.inds = rem_A[[i]], dfB.inds = rem_A[[i]])
+                res3 = list(dfA.inds = ol_A[[i]], dfB.inds = setdiff(l$dfB.inds,c(rem_B[[i]],rem_A[[i]])))
+                return(list(res1,res2,res3)[c(length(ol_A[[i]])>1, length(rem_A[[i]])>1,length(res3$dfB.inds)>0)])
+              }
+              
+              if(indicator2 == 3){
+                res1 = list(dfA.inds = rem_A[[i]], dfB.inds = rem_A[[i]])
+                res2 = list(dfA.inds = ol_A[[i]], dfB.inds = rem_B[[i]])
+                return(list(res1,res2)[c(length(rem_A[[i]])>1, length(rem_B[[i]])>0)])
+              }
+            }})
+          templist = c(unlist(templist[do], recursive = F),templist[!do])
+          templist = templist[sapply(templist,length)>0]
+          
+        }
+        blocklist = c(blocklist, templist)
+        
+        setTxtProgressBar(pb,i)
+        i = i+1
+      }
+      close(pb)
+      
+      blocklist = blocklist[-donors]
+      
+      # Make sure all overlap has been eliminated
+      Ainds = do.call(rbind,lapply(1:length(blocklist),function(i){
+        cbind(blocklist[[i]]$dfA.inds,i)
+      }))
+      
+      Ablockmat = sparseMatrix(i = Ainds[,1], j = Ainds[,2], x = 1)
+      
+      Binds = do.call(rbind,lapply(1:length(blocklist),function(i){
+        cbind(blocklist[[i]]$dfB.inds,i)
+      }))
+      
+      Bblockmat = sparseMatrix(i = Binds[,1], j = Binds[,2], x = 1)
+      
+      ABcomps = triu(t(Ablockmat) %*% Bblockmat, k = 1)
+      BAcomps = triu(t(Bblockmat) %*% Ablockmat, k = 1)
+      
+      overlaps = which(ABcomps * BAcomps > 0, arr.ind = T)
+      
+      pass = pass + 1
+      cat(sum(Bcomps * Acomps),' redundant record pairs remain \n')
+    }
+  }
   return(blocklist)
 }
 
