@@ -417,6 +417,7 @@ consolidate_blocks = function(...,dedupe = F){
       blocklist = blocklist[-dumpinds]
     }
   }
+  
   #step 2: combine blocks that fully overlap in dimension B
   {
     Binds = do.call(rbind,lapply(1:length(blocklist),function(i){
@@ -455,6 +456,7 @@ consolidate_blocks = function(...,dedupe = F){
     }
     
   }
+  
   ##Step 3: reduce blocks with dimension A fully contained in another block
   swtch1 = 1
   swtch2 = 1
@@ -484,7 +486,7 @@ consolidate_blocks = function(...,dedupe = F){
     if(nrow(todo)>0){
       swtch1 = 1
       
-      donors = apply(nAs[pmin(nAs[,1],nAs[,2])==nAcomp,], 1, which.min)
+      donors = apply(matrix(nAs[pmin(nAs[,1],nAs[,2])==nAcomp,],ncol = 2), 1, which.min)
       todo = cbind(todo[cbind(1:nrow(todo), donors)],todo[cbind(1:nrow(todo), 3-donors)])
       
       cat('Step 3: Reducing partially contained dfA blocks \n')
@@ -563,55 +565,6 @@ consolidate_blocks = function(...,dedupe = F){
       swtch2 = 0
     }
     
-  }
-  
-  
-  #Step 5a: if dedupe is true, go ahead and separate out blocks on the diagonal
-  
-  if(dedupe){
-    resolve_diag = sapply(blocklist,function(l){
-      !identical(l$dfA.inds,l$dfB.inds) & any(l$dfA.inds %in% l$dfB.inds)
-    })
-    if(sum(resolve_diag) > 0){
-      templists = vector(mode = 'list', length = sum(resolve_diag))
-      
-      cat('Step 5a: separating blocks along diagonal from rectangular blocks \n')
-      pb = txtProgressBar(0,sum(resolve_diag))
-      
-      i = 1
-      for(lst in blocklist[resolve_diag]){
-        diag_inds = intersect(lst$dfA.inds,lst$dfB.inds)
-        
-        rem_A = setdiff(lst$dfA.inds,diag_inds)
-        rem_B = setdiff(lst$dfB.inds,diag_inds)
-        
-        indicator = (length(rem_A) > 0) + 2*(length(rem_B) > 0)
-        
-        templists[[i]] = list(list(dfA.inds = diag_inds, dfB.inds = diag_inds))
-        
-        if(indicator == 1)
-          templists[[i]] = list(list(dfA.inds = diag_inds, dfB.inds = diag_inds), 
-                                list(dfA.inds = rem_A, dfB.inds = diag_inds))
-        if(indicator == 2)
-          templists[[i]] = list(list(dfA.inds = diag_inds, dfB.inds = diag_inds), 
-                                list(dfA.inds = diag_inds, dfB.inds = rem_B))
-        
-        if(indicator == 3){
-          templists[[i]] = list(list(dfA.inds = diag_inds, dfB.inds = diag_inds), 
-                                list(dfA.inds = rem_A, dfB.inds = diag_inds),
-                                list(dfA.inds = lst$dfA.inds, dfB.inds = rem_B))
-        }
-        
-        setTxtProgressBar(pb,i)
-        i = i+1
-      }
-      close(pb)
-      
-      templists = unlist(templists,recursive = F)
-      
-      blocklist = blocklist[!resolve_diag]
-      blocklist = c(blocklist,templists)
-    }
   }
   
   #Step 5: Resolve overlapping blocks
@@ -698,27 +651,14 @@ consolidate_blocks = function(...,dedupe = F){
             dfA.inds = l$dfA.inds, dfB.inds = rem_B[[i]]
           )))
           if(indicator == 3){
-            indicator2 = dupe_i + 2 * dupe_j
-            
-            if(indicator2 %in% c(0,2)){
-              res1 = list(dfA.inds = ol_A[[i]], dfB.inds = rem_B[[i]])
-              res2 = list(dfA.inds = rem_A[[i]], dfB.inds = l$dfB.inds)
-              return(list(res1,res2)[c(length(rem_B[[i]])>0, length(rem_A[[i]]) > 0)])
-            }
-            
-            if(indicator2 == 1){
-              res1 = list(dfA.inds = ol_A[[i]], dfB.inds = ol_A[[i]])
-              res2 = list(dfA.inds = rem_A[[i]], dfB.inds = rem_A[[i]])
-              res3 = list(dfA.inds = ol_A[[i]], dfB.inds = setdiff(l$dfB.inds,c(rem_B[[i]],rem_A[[i]])))
-              return(list(res1,res2,res3)[c(length(ol_A[[i]])>1, length(rem_A[[i]])>1,length(res3$dfB.inds)>0)])
-            }
-            
-            if(indicator2 == 3){
-              res1 = list(dfA.inds = rem_A[[i]], dfB.inds = rem_A[[i]])
-              res2 = list(dfA.inds = ol_A[[i]], dfB.inds = rem_B[[i]])
-              return(list(res1,res2)[c(length(rem_A[[i]])>1, length(rem_B[[i]])>0)])
-            }
+            return(list(
+              list(
+                dfA.inds = ol_A[[i]],dfB.inds = rem_B[[i]]
+              ),list(
+                dfA.inds = rem_A[[i]], dfB.inds = l$dfB.inds
+              )))
           }})
+        
         templist = c(unlist(templist[do], recursive = F),templist[!do])
         templist = templist[sapply(templist,length)>0]
         
@@ -753,6 +693,8 @@ consolidate_blocks = function(...,dedupe = F){
     pass = pass + 1
     cat(sum(Bcomps * Acomps),' overlapping record pairs remain \n')
   }
+  
+  
   #Step 6, remove redundant record pairs that got scrambled A-B if dedupe is true
   if(dedupe){
     
@@ -823,27 +765,14 @@ consolidate_blocks = function(...,dedupe = F){
               dfA.inds = l$dfA.inds, dfB.inds = rem_B[[i]]
             )))
             if(indicator == 3){
-              indicator2 = dupe_i + 2 * dupe_j
-              
-              if(indicator2 %in% c(0,2)){
-                res1 = list(dfA.inds = ol_A[[i]], dfB.inds = rem_B[[i]])
-                res2 = list(dfA.inds = rem_A[[i]], dfB.inds = l$dfB.inds)
-                return(list(res1,res2)[c(length(rem_B[[i]])>0, length(rem_A[[i]]) > 0)])
-              }
-              
-              if(indicator2 == 1){
-                res1 = list(dfA.inds = ol_A[[i]], dfB.inds = ol_A[[i]])
-                res2 = list(dfA.inds = rem_A[[i]], dfB.inds = rem_A[[i]])
-                res3 = list(dfA.inds = ol_A[[i]], dfB.inds = setdiff(l$dfB.inds,c(rem_B[[i]],rem_A[[i]])))
-                return(list(res1,res2,res3)[c(length(ol_A[[i]])>1, length(rem_A[[i]])>1,length(res3$dfB.inds)>0)])
-              }
-              
-              if(indicator2 == 3){
-                res1 = list(dfA.inds = rem_A[[i]], dfB.inds = rem_A[[i]])
-                res2 = list(dfA.inds = ol_A[[i]], dfB.inds = rem_B[[i]])
-                return(list(res1,res2)[c(length(rem_A[[i]])>1, length(rem_B[[i]])>0)])
-              }
+              return(list(
+                list(
+                  dfA.inds = ol_A[[i]],dfB.inds = rem_B[[i]]
+                ),list(
+                  dfA.inds = rem_A[[i]], dfB.inds = l$dfB.inds
+                )))
             }})
+          
           templist = c(unlist(templist[do], recursive = F),templist[!do])
           templist = templist[sapply(templist,length)>0]
           
@@ -879,6 +808,55 @@ consolidate_blocks = function(...,dedupe = F){
       cat(sum(Bcomps * Acomps),' redundant record pairs remain \n')
     }
   }
-  return(blocklist)
+  #Step 7: if dedupe is true, go ahead and separate out blocks on the diagonal
+  
+  if(dedupe){
+    resolve_diag = sapply(blocklist,function(l){
+      !identical(l$dfA.inds,l$dfB.inds) & any(l$dfA.inds %in% l$dfB.inds)
+    })
+    if(sum(resolve_diag) > 0){
+      templists = vector(mode = 'list', length = sum(resolve_diag))
+      
+      cat('Step 7: separating blocks along diagonal from rectangular blocks \n')
+      pb = txtProgressBar(0,sum(resolve_diag))
+      
+      i = 1
+      for(lst in blocklist[resolve_diag]){
+        diag_inds = intersect(lst$dfA.inds,lst$dfB.inds)
+        
+        rem_A = setdiff(lst$dfA.inds,diag_inds)
+        rem_B = setdiff(lst$dfB.inds,diag_inds)
+        
+        indicator = (length(rem_A) > 0) + 2*(length(rem_B) > 0)
+        
+        templists[[i]] = list(list(dfA.inds = diag_inds, dfB.inds = diag_inds))
+        
+        if(indicator == 1)
+          templists[[i]] = list(list(dfA.inds = diag_inds, dfB.inds = diag_inds), 
+                                list(dfA.inds = rem_A, dfB.inds = diag_inds))
+        if(indicator == 2)
+          templists[[i]] = list(list(dfA.inds = diag_inds, dfB.inds = diag_inds), 
+                                list(dfA.inds = diag_inds, dfB.inds = rem_B))
+        
+        if(indicator == 3){
+          templists[[i]] = list(list(dfA.inds = diag_inds, dfB.inds = diag_inds), 
+                                list(dfA.inds = rem_A, dfB.inds = diag_inds),
+                                list(dfA.inds = lst$dfA.inds, dfB.inds = rem_B))
+        }
+        
+        setTxtProgressBar(pb,i)
+        i = i+1
+      }
+      close(pb)
+      
+      templists = unlist(templists,recursive = F)
+      
+      blocklist = blocklist[!resolve_diag]
+      blocklist = c(blocklist,templists)
+    }
+  }
+  ident = sapply(blocklist, function(l) identical(l$dfA.inds,l$dfB.inds))
+  nrp = sapply(blocklist, function(l) length(l$dfA.inds) * length(l$dfB.inds))
+  if(dedupe) drop = which(ident & nrp == 1)
+  return(blocklist[-drop])
 }
-
