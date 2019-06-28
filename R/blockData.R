@@ -857,6 +857,6 @@ consolidate_blocks = function(...,dedupe = F){
   }
   ident = sapply(blocklist, function(l) identical(l$dfA.inds,l$dfB.inds))
   nrp = sapply(blocklist, function(l) length(l$dfA.inds) * length(l$dfB.inds))
-  if(dedupe) drop = which(ident & nrp == 1)
-  return(blocklist[-drop])
+  if(dedupe) drop = ident & nrp == 1
+  return(blocklist[!drop])
 }
