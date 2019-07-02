@@ -947,13 +947,13 @@ resolve_diags = function(blocklist){
 de_overlap_blocks = function(blocklist,olap_mat,A_olaps, B_olaps,cross_ind = F, nround = 25){
   
   ssize = sapply(blocklist, function(l) length(unlist(l)))
-  allA = matrix(sapply(olap_mat,function(i) length(blocklist[[i]]$dfA.inds)),ncol = 2)
-  allB = matrix(sapply(olap_mat,function(i) length(blocklist[[i]]$dfB.inds)),ncol = 2)
+  allA = matrix(sapply(olap_mat,function(i) as.numeric(length(blocklist[[i]]$dfA.inds))),ncol = 2)
+  allB = matrix(sapply(olap_mat,function(i) as.numeric(length(blocklist[[i]]$dfB.inds))),ncol = 2)
   if(cross_ind){
     temp = cbind(allA[,1],allB[,2]); allB = cbind(allB[,1],allA[,2]); allA = temp
   }
   
-  nrp = as.numeric(allA) * as.numeric(allB)
+  nrp = allA * allB
   #the donor will be the block for which resulting number of indices is smallest
   #min(dfB + olA  vs dfA + olB)
   
