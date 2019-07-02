@@ -193,31 +193,7 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
     
     
     cat("\n")
-    # if(combine.method == 'AND') pat_template = c(NA,2)
-    # if(combine.method == 'OR') pat_template = c(NA,0,2)
-    #   
-    # str = paste0('expand.grid(',paste(rep('pat_template',length(varnames)),collapse = ','),')')
-    # patts = eval(parse(text = str))
-    # patts = patts[apply(patts,1,sum,na.rm=T)>0,]
-    # patts = cbind(patts,100)
-    # zeta.j = rep(0,nrow(patts))
-    # weights = rep(0,nrow(patts))
-    # 
-    # block_groups = vector(mode = 'list', length = nrow(patts))
-    # for(i in 1:nrow(patts)){
-    #   zeta.j_ = zeta.j
-    #   zeta.j_[i] = 1
-    #   weights_ = weights
-    #   weights_[i] = 100
-    #   
-    #   em = list(patterns.w = cbind(patts,weights),zeta.j = zeta.j_)
-    #   block_groups[[i]] = matchesLink(gammalist, nobs.a = nrow(dfA), nobs.b = nrow(dfB),
-    #                                   em = em, thresh = 1,
-    #                                   n.cores = n.cores, dedupe = dedupe)
-    # } Problem - too many record pairs!
-    
-    
-    
+
     ## --------------
     ## Combine blocks
     ## --------------
@@ -234,8 +210,8 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
         blocklist_out[[i]] <- list(dfA.inds = indlist_a[[i]], dfB.inds = indlist_b[[i]])
     }
     if(dedupe){
-      lengths = sapply(blocklist_out,function(l) length(l$dfA.inds) * length(l$dfB.inds))
-      blocklist_out = blocklist_out[lengths>1]
+      length1 = sapply(blocklist_out,function(l) length(l$dfA.inds) == 1 && length(l$dfB.inds) == 1 && identical(l$dfA.inds,l$dfB.inds))
+      blocklist_out = blocklist_out[!length1]
     }
     names(blocklist_out) <- paste0("block.", 1:length(blocklist_out))
     class(blocklist_out) <- "fastLink.block"
