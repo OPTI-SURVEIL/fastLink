@@ -953,7 +953,7 @@ de_overlap_blocks = function(blocklist,olap_mat,A_olaps, B_olaps,cross_ind = F, 
     temp = cbind(allA[,1],allB[,2]); allB = cbind(allB[,1],allA[,2]); allA = temp
   }
   
-  nrp = allA * allB
+  nrp = as.numeric(allA) * as.numeric(allB)
   #the donor will be the block for which resulting number of indices is smallest
   #min(dfB + olA  vs dfA + olB)
   
