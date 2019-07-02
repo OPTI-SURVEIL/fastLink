@@ -968,7 +968,7 @@ resolve_diags = function(blocklist){
   blocklist
 }
 
-de_overlap_blocks = function(blocklist,olap_mat,A_olaps, B_olaps,cross_ind = F, nround = 10){
+de_overlap_blocks = function(blocklist,olap_mat,A_olaps, B_olaps,cross_ind = F, nround = 25){
   
   ssize = sapply(blocklist, function(l) length(unlist(l)))
   allA = matrix(sapply(olap_mat,function(i) length(blocklist[[i]]$dfA.inds)),ncol = 2)
