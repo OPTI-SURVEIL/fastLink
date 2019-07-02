@@ -838,7 +838,7 @@ full_block_merge = function(inds,keys,blocklist,dim, AtoB = F){
     merge_list = merge_list[-drops]
   }
   
-  #if(length(merge_list) == 0) 
+  if(length(merge_list) == 0) return(blocklist)
   
   pb = txtProgressBar(0,length(merge_list))
   
