@@ -109,6 +109,9 @@
 #' @param return.df Whether to return the entire dataframe of dfA and dfB
 #'   instead of just the indices. Default is FALSE.
 #' @param verbose Whether to print elapsed time for each step. Default is FALSE.
+#' @param write.gammalist Whether to save the agreement calculations used to build EM data and recover matching record pairs. 
+#' This can be helpful if the investigator wishes to change a parameter of the linkage criteria, or experiment with different thresholds for match probability.
+#' Defaults to \code{TRUE}, and saves intermediate results to the current working directory as gammalist_(Sys.time).rds
 #'
 #' @return \code{fastLink} returns a list of class 'fastLink' containing the
 #'   following components if calculating matches: \item{matches}{An nmatches X 2
@@ -153,7 +156,7 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
                      dedupe.matches = TRUE, linprog.dedupe = FALSE,
                      reweight.names = FALSE, firstname.field = NULL, cond.indep = TRUE,
                      n.cores = NULL, tol.em = 1e-04, threshold.match = NULL,auto.threshold = T,
-                     return.all = FALSE, return.df = FALSE, verbose = FALSE){
+                     return.all = FALSE, return.df = FALSE, verbose = FALSE, write.gammalist = TRUE){
 
     cat("\n")
     cat(c(paste(rep("=", 20), sep = "", collapse = ""), "\n"))
@@ -558,7 +561,12 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
     if(verbose){
         cat("Calculating matches for each variable took", round(difftime(end, start, units = "mins"), 2), "minutes.\n\n")
     }
-
+    
+    if(write.gammalist){
+      fname = gsub(':', '', paste0('gammalist_',Sys.time(),'.zip'))
+      saveRDS(gammalist,fname,compress = 'xz')
+      cat('Agreement data stored in file "', fname,'"\n',sep = '')
+    } 
     ## Get row numbers
     nr_a <- nrow(dfA)
     nr_b <- nrow(dfB)
