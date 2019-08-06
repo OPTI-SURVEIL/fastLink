@@ -633,18 +633,25 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
                               ),immediate. = T)
           }
         }
-        if(cond.indep == FALSE){
-            resultsEM <- emlinklog(patterns = counts, nobs.a = nr_a, nobs.b = nr_b,
-                                   tol = tol.em, varnames = varnames)  
-        }else{
-            resultsEM <- emlinkMARmov(patterns = counts, nobs.a = nr_a, nobs.b = nr_b,
+        doEM = T
+        while(doEM){
+          if(cond.indep == FALSE){
+            
+            resultsEM <- try(emlinklog(patterns = counts, nobs.a = nr_a, nobs.b = nr_b,
+                                   tol = tol.em, varnames = varnames),silent = T)
+            
+          }else{
+            resultsEM <- try(emlinkMARmov(patterns = counts, nobs.a = nr_a, nobs.b = nr_b,
                                       tol = tol.em,
                                       prior.lambda = lambda.prior, w.lambda = w.lambda,
                                       prior.pi = pi.prior, w.pi = w.pi,
                                       address.field = address.field, 
                                       gender.field = gender.field,
-                                      varnames = varnames)
+                                      varnames = varnames),silent = T)
+          }
+          if(!is.character(resultsEM)) doEM = F
         }
+        
         end <- Sys.time()
         if(verbose){
             cat("Running the EM algorithm took", round(difftime(end, start, units = "secs"), 2), "seconds.\n\n")
