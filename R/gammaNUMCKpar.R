@@ -114,7 +114,7 @@ gammaNUMCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 1, cut.p = 2, de
       drop = do[,2] < do[,1]
       do = matrix(do[!drop,],ncol=2)
       
-      pb = txtProgressBar(0, length(matches.l),style = 1)
+      pb = txtProgressBar(0, nrow(do),style = 1)
       progress = function(n) setTxtProgressBar(pb, n)
       opts = list(progress = progress)
       
@@ -176,7 +176,7 @@ gammaNUMCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 1, cut.p = 2, de
         registerDoSNOW(cl)
         on.exit(stopCluster(cl))
       }
-      pb = txtProgressBar(0, length(matches.l),style = 1)
+      pb = txtProgressBar(0, nrow(do),style = 1)
       progress = function(n) setTxtProgressBar(pb, n)
       opts = list(progress = progress)
       
