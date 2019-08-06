@@ -30,7 +30,7 @@
 ## in parallel
 ## ------------------------
 gammaNUMCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 1, dedupe = F) {
-    
+  varnm = names(matAp)
     if(any(class(matAp) %in% c("tbl_df", "data.table"))){
         matAp <- as.data.frame(matAp)[,1]
     }
@@ -42,10 +42,10 @@ gammaNUMCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 1, dedupe = F) 
     matBp[matBp == ""] <- NA
 
     if(sum(is.na(matAp)) == length(matAp) | length(unique(matAp)) == 1){
-        cat("WARNING: You have no variation in this variable, or all observations are missing in dataset A.\n")
+      cat("WARNING: You have no variation in variable '", varnm,"', or all observations are missing in dataset A.\n",sep = '')
     }
     if(sum(is.na(matBp)) == length(matBp) | length(unique(matBp)) == 1){
-        cat("WARNING: You have no variation in this variable, or all observations are missing in dataset B.\n")
+      cat("WARNING: You have no variation in variable '", varnm,"', or all observations are missing in dataset B.\n",sep = '')
     }
     
     if(is.null(n.cores)) {
@@ -110,7 +110,7 @@ gammaNUMCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 1, dedupe = F) 
       else { 
         '%oper%' <- foreach::'%dopar%'
         cl <- makeCluster(n.cores2)
-        registerDoParallel(cl)
+        registerDoSNOW(cl)
         on.exit(stopCluster(cl))
       }
       
@@ -118,7 +118,11 @@ gammaNUMCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 1, dedupe = F) 
       drop = do[,2] < do[,1]
       do = matrix(do[!drop,],ncol=2)
       
-      temp.f <- foreach(i = 1:nrow(do), .packages = c("Matrix")) %oper% {
+      pb = txtProgressBar(0, length(matches.l),style = 1)
+      progress = function(n) setTxtProgressBar(pb, n)
+      opts = list(progress = progress)
+      
+      temp.f <- foreach(i = 1:nrow(do), .packages = c("Matrix"), .options.snow = opts) %oper% {
         r1 <- do[i, 1]
         r2 <- do[i, 2]
         
@@ -169,16 +173,22 @@ gammaNUMCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 1, dedupe = F) 
       else { 
         '%oper%' <- foreach::'%dopar%'
         cl <- makeCluster(n.cores2)
-        registerDoParallel(cl)
+        registerDoSNOW(cl)
         on.exit(stopCluster(cl))
       }
       
-      temp.f <- foreach(i = 1:nrow(do), .packages = c("Rcpp", "Matrix")) %oper% {
+      pb = txtProgressBar(0, length(matches.l),style = 1)
+      progress = function(n) setTxtProgressBar(pb, n)
+      opts = list(progress = progress)
+      
+      temp.f <- foreach(i = 1:nrow(do), .packages = c("Rcpp", "Matrix"), .options.snow = opts) %oper% {
         r1 <- do[i, 1]
         r2 <- do[i, 2]
         difference(temp.1[[r1]], temp.2[[r2]], cut.a)
       }
     }
+    
+    close(pb)
     
     gc()
 

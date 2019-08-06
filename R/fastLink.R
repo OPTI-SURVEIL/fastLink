@@ -556,6 +556,8 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
         }
       }
     }
+    
+    names(gammalist) = varnames
       
     end <- Sys.time()
     if(verbose){
@@ -593,8 +595,6 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
                             dedupe = dedupe.df)
     }
     
-    colnames(counts)[seq_along(varnames)] = paste0('gamma.',varnames)
-  
     end <- Sys.time()
     if(verbose){
         cat("Getting counts for parameter estimation took", round(difftime(end, start, units = "mins"), 2), "minutes.\n\n")
@@ -627,6 +627,11 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
             }else{
                 pi.prior <- NULL
             }
+          for(col in 1:length(varnames)){
+            if(all(counts[,col] == 0 | is.na(counts[,col]) ) )
+              warning(paste0('There are no matches for variable "', varnames[col],'", and it will not be considered during linkage. \nThis may also indicate a lack of true matches in the dataset, in which case estimated match probabilities may not be reliable.'
+                              ),immediate. = T)
+          }
         }
         if(cond.indep == FALSE){
             resultsEM <- emlinklog(patterns = counts, nobs.a = nr_a, nobs.b = nr_b,

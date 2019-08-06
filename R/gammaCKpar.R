@@ -44,6 +44,8 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
                        transform.args = NULL, method = "jw",method.args=NULL,
                        w = .10) {
 
+    varnm = names(matAp)  
+  
     if(any(class(matAp) %in% c("tbl_df", "data.table"))){
         matAp <- as.data.frame(matAp)[,1]
     }
@@ -55,10 +57,10 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
     matBp[matBp == ""] <- NA
 
     if(sum(is.na(matAp)) == length(matAp) | length(unique(matAp)) == 1){
-        cat("WARNING: You have no variation in this variable, or all observations are missing in dataset A.\n")
+      cat("WARNING: You have no variation in variable '", varnm,"', or all observations are missing in dataset A.\n",sep = '')
     }
     if(sum(is.na(matBp)) == length(matBp) | length(unique(matBp)) == 1){
-        cat("WARNING: You have no variation in this variable, or all observations are missing in dataset B.\n")
+      cat("WARNING: You have no variation in variable '", varnm,"', or all observations are missing in dataset B.\n",sep = '')
     }
     
     if( !is.function(method)){
@@ -406,12 +408,12 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
 
     if(length(matches.2) == 0){ 
       final.list2 <- list()
-      warning("There are no identical (or nearly identical) matches. We suggest either changing the value of cut.p") 
+      #warning(paste0("There are no full matches for variable ", varnm,"\nThis may indicate that there are no true matches in your data, and estimated match probabilities may be unreliable \nIf this is a surprise, consider lowering cut.a"))
     }
     
     if(length(matches.1) == 0){ 
     	final.list1 <- list()
-    	warning("There are no partial matches. We suggest either changing the value of cut.p or using gammaCK2par() instead") 
+    	#warning("There are no partial matches for variable ", varnm,"\nWe suggest either changing the value of cut.p or using gammaCK2par() instead") 
     }
     
     na.list <- list()

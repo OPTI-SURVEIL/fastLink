@@ -32,6 +32,7 @@ gammaKpar <- function(matAp, matBp, gender = FALSE, dedupe = F,n.cores = NULL) {
 
     ## For visible bindings
     i <- NULL
+    varnm = names(matAp)
 
     if(any(class(matAp) %in% c("tbl_df", "data.table"))){
         matAp <- as.data.frame(matAp)[,1]
@@ -44,22 +45,22 @@ gammaKpar <- function(matAp, matBp, gender = FALSE, dedupe = F,n.cores = NULL) {
         n.cores <- detectCores() - 1
     }
 
-    matAp[matAp == ""] <- NA
-    matBp[matBp == ""] <- NA
+    if(is.character(matAp) | is.factor(matAp)) matAp[matAp == ""] <- NA
+    if(is.character(matBp) | is.factor(matBp)) matBp[matBp == ""] <- NA
 
     if(!gender){
         if(sum(is.na(matAp)) == length(matAp) | length(unique(matAp)) == 1){
-            cat("WARNING: You have no variation in this variable, or all observations are missing in dataset A.\n")
+            cat("WARNING: You have no variation in variable '", varnm,"', or all observations are missing in dataset A.\n",sep = '')
         }
         if(sum(is.na(matBp)) == length(matBp) | length(unique(matBp)) == 1){
-            cat("WARNING: You have no variation in this variable, or all observations are missing in dataset B.\n")
+            cat("WARNING: You have no variation in variable '", varnm, "', or all observations are missing in dataset B.\n",sep = '')
         }
     }else{
         if(sum(is.na(matAp)) == length(matAp)){
-            cat("WARNING: You have no variation in this variable, or all observations are missing in dataset A.\n")
+            cat("WARNING: You have no variation in variable '", varnm, "', or all observations are missing in dataset A.\n",sep = '')
         }
         if(sum(is.na(matBp)) == length(matBp)){
-            cat("WARNING: You have no variation in this variable, or all observations are missing in dataset B.\n")
+            cat("WARNING: You have no variation in variable '", varnm, "', or all observations are missing in dataset B.\n",sep = '')
         }
     }
 
@@ -91,24 +92,32 @@ gammaKpar <- function(matAp, matBp, gender = FALSE, dedupe = F,n.cores = NULL) {
         else { 
           '%oper%' <- foreach::'%dopar%'
           cl <- makeCluster(n.cores)
-          registerDoParallel(cl)
+          registerDoSNOW(cl)
           on.exit(stopCluster(cl))
         }
         
-        final.list <- foreach(i = 1:length(matches.l)) %oper% {
-          ht1 <- which(matrix.1 == matches.l[[i]]); ht2 <- which(matrix.2 == matches.l[[i]])
+        pb = txtProgressBar(0, length(matches.l),style = 1)
+        progress = function(n) setTxtProgressBar(pb, n)
+        opts = list(progress = progress)
+        
+        final.list <- foreach(i = 1:length(matches.l), .options.snow = opts) %oper% {
+          ht1 <- which(matrix.1 == matches.l[[i]]); 
+          if(dedupe){ht2 = ht1} else{ht2 <- which(matrix.2 == matches.l[[i]])}
           list(ht1, ht2)
         }
         
+        close(pb)
+        
       } else {
         final.list <- mclapply(matches.l, function(s){
-          ht1[[s]] <- which(matrix.1 == s); ht2[[s]] <- which(matrix.2 == s);
+          ht1[[s]] <- which(matrix.1 == s); ht2[[s]] <- ifelse(dedupe, ht1[[s]], which(matrix.2 == s));
           list(ht1[[s]], ht2[[s]]) }, mc.cores = getOption("mc.cores", n.cores))
       }
       
       
       out[["matches2"]] <- final.list
     }else{
+      #warning(paste0('There are no exact matches for variable ', varnm,', and it will not be considered during linkage \nThis may indicate that there are no true matches in your data, and estimated match probabilities may be unreliable'))
       out[["matches2"]] <- vector(length = 0,mode = 'list') 
     }
     

@@ -43,6 +43,9 @@ tableCounts <- function(gammalist, nobs.a, nobs.b, dedupe = FALSE, n.cores = NUL
     ##     temp - exact
     ##     ptemp - partial
     ##     natemp - NAs
+  
+    if(is.null(names(gammalist))) names(gammalist) = 1:length(gammalist)
+    
     temp <- vector(mode = "list", length = length(gammalist))
     ptemp <- vector(mode = "list", length = length(gammalist))
     natemp <- vector(mode = "list", length = length(gammalist))
@@ -125,7 +128,7 @@ tableCounts <- function(gammalist, nobs.a, nobs.b, dedupe = FALSE, n.cores = NUL
         temp <- do.call('rbind', gammas_mat)
 
     } else {
-
+        
         gammas <- m_func_par(temp = temp, ptemp = ptemp, natemp = natemp,
                              limit1 = limit.1, limit2 = limit.2,
                              nlim1 = n.lim.1, nlim2 = n.lim.2,
@@ -171,7 +174,7 @@ tableCounts <- function(gammalist, nobs.a, nobs.b, dedupe = FALSE, n.cores = NUL
     }
     patterns.2 <- t((patterns.2vec) * t(data.new.0[,1:length(gammalist)]))
     data.new.1 <- cbind(patterns.2, data.new.0[,length(gammalist)+1])
-    names <- c(paste0("gamma.", 1:length(gammalist)), "counts")
+    names <- c(paste0("gamma.", names(gammalist)), "counts")
     colnames(data.new.1) <- names
     sub.nc <- which(colSums(data.new.1) == 0)
     sub.nc <- sub.nc[sub.nc > length(gammalist)]
@@ -185,6 +188,7 @@ tableCounts <- function(gammalist, nobs.a, nobs.b, dedupe = FALSE, n.cores = NUL
     colnames(data.new)[nc] <- "counts"
     data.new <- data.new[data.new[, nc] > 0, ]
     class(data.new) <- c("fastLink", "tableCounts")
+    
     return(data.new)
     
 }

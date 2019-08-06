@@ -29,7 +29,6 @@ Imports:
     stringdist,
     stringr,
     stringi,
-    Rcpp (>= 0.12.7),
     RcppAlgos,
     FactoClass,
     adagio,
@@ -38,8 +37,8 @@ Imports:
     grDevices,
     graphics
 Depends:
-    R (>= 2.14.0)
-LinkingTo: RcppArmadillo, Rcpp, RcppEigen
+    R (>= 2.14.0),  Rcpp (>= 0.12.7), RcppProgress (>= 0.4.1)
+LinkingTo: RcppArmadillo, Rcpp, RcppEigen, RcppProgress
 Encoding: UTF-8
 LazyData: true
 BugReports: https://github.com/kosukeimai/fastLink/issues
