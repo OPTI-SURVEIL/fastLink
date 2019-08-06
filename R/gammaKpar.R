@@ -122,7 +122,6 @@ gammaKpar <- function(matAp, matBp, gender = FALSE, dedupe = F,n.cores = NULL) {
     na.list[[1]] <- which(matrix.1 == "1234MF")
     na.list[[2]] <- which(matrix.2 == "9876ES")
 
-    out <- list()
     out[["nas"]] <- na.list
     out[['.identical']] <- .identical
     class(out) <- c("fastLink", "gammaKpar")

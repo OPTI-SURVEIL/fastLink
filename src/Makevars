@@ -1,4 +1,4 @@
 ## Use the R_HOME indirection to support installations of multiple R version
 
-PKG_LIBS = '$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"' $(SHLIB_OPENMP_CXXFLAGS) '$(R_HOME)/bin/Rscript -e "RcppProgress:::CxxFlags()"' and
+PKG_LIBS = '$(R_HOME)/bin/Rscript -e "Rcpp:::LdFlags()"' $(SHLIB_OPENMP_CXXFLAGS) '$(R_HOME)/bin/Rscript -e "RcppProgress:::CxxFlags()"'
 PKG_CXXFLAGS +=-Ilibsrc $(SHLIB_OPENMP_CXXFLAGS) '$(R_HOME)/bin/Rscript -e "RcppProgress:::CxxFlags()"'

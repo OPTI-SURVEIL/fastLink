@@ -437,7 +437,6 @@ std::vector< std::vector<arma::vec> > m_func_par(const std::vector< std::vector<
 
   for(unsigned i = 0; i < ind.n_rows; i++){
       // Get indices of the rows
-      if(Progress::check_abort()) continue;
       if(p.increment()){
         n = ind(i,0)-1; m = ind(i, 1)-1;
         lims(0) = nlim1(n); lims(1) = nlim2(m); //size

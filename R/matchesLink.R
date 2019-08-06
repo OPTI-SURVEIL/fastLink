@@ -132,7 +132,12 @@ matchesLink <- function(gammalist, nobs.a, nobs.b, em, thresh, n.cores = NULL,de
     ind.i <- 1:n.slices1
     ind.j <- 1:n.slices2
     ind <- as.matrix(expand.grid(ind.i, ind.j))
-
+    
+    if(dedupe){
+      keep_rows = which(ind[,1]<=ind[,2])
+      ind = matrix(ind[keep_rows,],ncol = 2) #removing empty blocks for internal linkage represented by upper right tri matrix
+    }
+    
     ## Run main function
     if(Sys.info()[['sysname']] == 'Darwin') {
         if (nc == 1) '%oper%' <- foreach::'%do%'

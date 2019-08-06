@@ -13,8 +13,9 @@
 #'
 #' @param dfA Dataset A - to be matched to Dataset B
 #' @param dfB Dataset B - to be matched to Dataset A
-#' @param blocklist An optional list of blocks of record pairs produced by blockData. If included, agreement patterns are counted within each block,
-#' then aggregated together prior to EM.
+#' @param blocklist An optional list of blocks of record pairs produced by
+#'   blockData. If included, agreement patterns are counted within each block,
+#'   then aggregated together prior to EM.
 #' @param varnames A vector of variable names to use for matching. Must be
 #'   present in both dfA and dfB
 #' @param stringdist.match A vector of variable names indicating which variables
@@ -22,19 +23,23 @@
 #'   must not be present in 'numeric.match'.
 #' @param string.transform An optional function returning a transformation or
 #'   list of transformations of the input strings
-#'   
-#' @param string.transform.args A list of arguments to the provided string transformation function
-#' 
+#'
+#' @param string.transform.args A list of arguments to the provided string
+#'   transformation function
+#'
 #' @param stringdist.method String distance method for calculating similarity,
 #'   options are: "jw" Jaro-Winkler (Default), "jaro" Jaro, and "lv" Edit. May
-#'   also be a function for custom methods. The custom function should return a N1 by N2 matrix of similarity scores based on 
-#'   the strings to be compared, given in the first two arguments, as well as any additional arguments, which must be passed 
-#'   as a list to stringdist.args. If internal linkage and deduplication is desired, the custom function should be return
-#'   a lower triangular matrix (N1 by N1) of scores for permutations of a vector of strings when the second argument is missing.
-#'   
+#'   also be a function for custom methods. The custom function should return a
+#'   N1 by N2 matrix of similarity scores based on the strings to be compared,
+#'   given in the first two arguments, as well as any additional arguments,
+#'   which must be passed as a list to stringdist.args. If internal linkage and
+#'   deduplication is desired, the custom function should be return a lower
+#'   triangular matrix (N1 by N1) of scores for permutations of a vector of
+#'   strings when the second argument is missing.
+#'
 #' @param stringdist.args List of arguments to be provided to stringdist.method
 #'   if a custom function is used.
-#'   
+#'
 #' @param numeric.match A vector of variable names indicating which variables
 #'   should use numeric matching. Must be a subset of 'varnames' and must not be
 #'   present in 'stringdist.match'.
@@ -70,9 +75,13 @@
 #'   EM object will be returned. Can be used when running the match on a random
 #'   sample and applying to a larger dataset, or for out-of-sample prediction of
 #'   matches. Default is FALSE.
-#' @param counts.only Whether to stop running the algorithm after counting agreement patterns. 
-#' Will return the frequency table used in the EM aglorithm, as well as the list of matching indices for each field, 
-#' which may be used to retrieve matches at later points. Default is FALSE.
+#' @param counts.only Whether to stop running the algorithm after counting
+#'   agreement patterns. Will return the frequency table used in the EM
+#'   aglorithm, as well as the list of matching indices for each field, which
+#'   may be used to retrieve matches at later points. Default is FALSE.
+#' @param gammalist.obj An optional previously saved result of matching the
+#'   fields to be used during linkage. Typically would be an automatically saved
+#'   object when \code{write.gammalist = TRUE}. If provided, algorithm skips the variable matching step.
 #' @param em.obj An EM object from a prior run of 'fastLink' or 'emlinkMARmov'.
 #'   Parameter estimates will be applied to the matching patterns in 'dfA' and
 #'   'dfB'. If provided. 'estimate.only' is set to FALSE. Often provided when
@@ -99,9 +108,10 @@
 #'   all pairs with posterior probability greater than .85 as matches, while
 #'   threshold.match = c(.85, .95) will return all pairs with posterior
 #'   probability between .85 and .95 as matches.
-#' @param auto.threshold Boolean. If set to \code{TRUE}, the default, the threshold for accepting matches is automatically calculated 
-#' to return the closest number of matches to the overall estimated proportion. Will be set to FALSE if threshold.match is provided
-#' or return.all is TRUE
+#' @param auto.threshold Boolean. If set to \code{TRUE}, the default, the
+#'   threshold for accepting matches is automatically calculated to return the
+#'   closest number of matches to the overall estimated proportion. Will be set
+#'   to FALSE if threshold.match is provided or return.all is TRUE
 #' @param return.all Whether to return the most likely match for each
 #'   observation in dfA and dfB. Overrides user setting of
 #'   \code{threshold.match} by setting \code{threshold.match} to 0.0001, and
@@ -109,9 +119,12 @@
 #' @param return.df Whether to return the entire dataframe of dfA and dfB
 #'   instead of just the indices. Default is FALSE.
 #' @param verbose Whether to print elapsed time for each step. Default is FALSE.
-#' @param write.gammalist Whether to save the agreement calculations used to build EM data and recover matching record pairs. 
-#' This can be helpful if the investigator wishes to change a parameter of the linkage criteria, or experiment with different thresholds for match probability.
-#' Defaults to \code{TRUE}, and saves intermediate results to the current working directory as gammalist_(Sys.time).rds
+#' @param write.gammalist Whether to save the agreement calculations used to
+#'   build EM data and recover matching record pairs. This can be helpful if the
+#'   investigator wishes to change a parameter of the linkage criteria, or
+#'   experiment with different thresholds for match probability. Defaults to
+#'   \code{TRUE}, and saves intermediate results to the current working
+#'   directory as gammalist_(Sys.time).rds
 #'
 #' @return \code{fastLink} returns a list of class 'fastLink' containing the
 #'   following components if calculating matches: \item{matches}{An nmatches X 2
@@ -152,7 +165,7 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
                      cut.a.num = 1, cut.p.num = 2.5,
                      priors.obj = NULL,
                      w.lambda = NULL, w.pi = NULL, address.field = NULL,
-                     gender.field = NULL, estimate.only = FALSE, counts.only = FALSE, em.obj = NULL,
+                     gender.field = NULL, estimate.only = FALSE, counts.only = FALSE, gammalist.obj = NULL, em.obj = NULL,
                      dedupe.matches = TRUE, linprog.dedupe = FALSE,
                      reweight.names = FALSE, firstname.field = NULL, cond.indep = TRUE,
                      n.cores = NULL, tol.em = 1e-04, threshold.match = NULL,auto.threshold = T,
@@ -162,26 +175,22 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
     cat(c(paste(rep("=", 20), sep = "", collapse = ""), "\n"))
     cat("fastLink(): Fast Probabilistic Record Linkage\n")
     cat(c(paste(rep("=", 20), sep = "", collapse = ""), "\n\n"))
-    blocked = F
-    if(!is.null(blocklist)){
-      blocked = T
-      blocklist = lapply(blocklist,function(b){
-        b$dfA = dfA[b$dfA.inds,]
-        b$dfB = dfB[b$dfB.inds,]
-        b
-      })
-      dedupe.df.blocks = rep(F,length(blocklist))
+    
+    if(any(class(dfA) %in% c("tbl_df", "data.table"))){
+      dfA <- as.data.frame(dfA)
     }
+    if(any(class(dfB) %in% c("tbl_df", "data.table"))){
+      dfB <- as.data.frame(dfB)
+    }
+    
+    blocked = !is.null(blocklist)
+    if(blocked) dedupe.df.blocks = rep(F,length(blocklist))
+
     ## --------------------------------------
     ## Process inputs and stop if not correct
     ## --------------------------------------
     
-    if(any(class(dfA) %in% c("tbl_df", "data.table"))){
-        dfA <- as.data.frame(dfA)
-    }
-    if(any(class(dfB) %in% c("tbl_df", "data.table"))){
-        dfB <- as.data.frame(dfB)
-    }
+
     if(any(!(varnames %in% names(dfA)))){
         stop("Some variables in varnames are not present in dfA.")
     }
@@ -238,6 +247,11 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
         if(!("fastLink.EM" %in% class(em.obj))){
             stop("If providing an EM object, it must be of class 'fastLink.EM'.")
         }
+    }
+    if(!is.null(gammalist.obj)){
+      gammas = grepl('gamma',lapply(gammalist.obj,class))
+      if(!all(gammas))
+        stop('If providing a gammalist object, each list entry must have been generated from one of fastLink\'s gamma variable matching functions.')
     }
     if(!is.null(em.obj) & estimate.only){
         estimate.only <- FALSE
@@ -335,171 +349,208 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
     ## ----------------------------
     ## Calculate agreement patterns
     ## ----------------------------
-    cat("Calculating matches for each variable.\n")
-    start <- Sys.time()
-    
-    gammalist <- vector(mode = "list", length = length(varnames))
-    if(blocked) gammalist.recover = gammalist
-    
-    for(i in 1:length(varnames)){
-      if(verbose){
-        matchtype <- ifelse(stringdist.match[i], "string-distance", ifelse(numeric.match[i], "numeric", "exact"))
-        cat("    Matching variable", varnames[i], "using", matchtype, "matching.\n")
-      }
-      ## Convert to character
-      if(is.factor(dfA[,varnames[i]]) | is.factor(dfB[,varnames[i]])){
-        dfA[,varnames[i]] <- as.character(dfA[,varnames[i]])
-        dfB[,varnames[i]] <- as.character(dfB[,varnames[i]])
-      }
-      ## Warn if no variation (except for gender blocking)
-      if(!gender.field[i]){
-        if(sum(is.na(dfA[,varnames[i]])) == nrow(dfA) | length(unique(dfA[,varnames[i]])) == 1){
-          cat(paste("WARNING: You have no variation in dataset A for", varnames[i], "or all observations are missing."))
+    if(is.null(gammalist.obj)){
+      cat("Calculating matches for each variable.\n")
+      start <- Sys.time()
+      
+      gammalist <- vector(mode = "list", length = length(varnames))
+      if(blocked) gammalist.recover = gammalist
+      
+      for(i in 1:length(varnames)){
+        if(verbose){
+          matchtype <- ifelse(stringdist.match[i], "string-distance", ifelse(numeric.match[i], "numeric", "exact"))
+          cat("    Matching variable", varnames[i], "using", matchtype, "matching.\n")
         }
-        if(sum(is.na(dfB[,varnames[i]])) == nrow(dfB) | length(unique(dfB[,varnames[i]])) == 1){
-          cat(paste("WARNING: You have no variation in dataset B for", varnames[i], "or all observations are missing."))
+        ## Convert to character
+        if(is.factor(dfA[,varnames[i]]) | is.factor(dfB[,varnames[i]])){
+          dfA[,varnames[i]] <- as.character(dfA[,varnames[i]])
+          dfB[,varnames[i]] <- as.character(dfB[,varnames[i]])
         }
-      }
-      if(sum(dfA[,varnames[i]] %in% dfB[,varnames[i]]) == 0){
-        cat(paste0("WARNING: You have no exact matches for ", varnames[i], "."))
-      }
-
-      ## Get patterns
-      if(stringdist.match[i]){
-        if(partial.match[i]){
-          if(blocked){
-            templists = lapply(1:length(blocklist), function(b){
-              if(verbose) cat(paste('Processing variable', varnames[i],'for block', b,'\n'))
-              b = blocklist[[b]]
-              capture.output(res <- gammaCKpar(
-                b$dfA[,varnames[i]], b$dfB[,varnames[i]], cut.a = cut.a, cut.p = cut.p, method = stringdist.method, transform = string.transform,
-                transform.args = string.transform.args,method.args = stringdist.args, w = jw.weight, n.cores = n.cores,
-                dedupe = dedupe.df.blocks[b]))
-              res
-            })
-            gammalist[[i]] = templists
-            if(!estimate.only){
-              gammalist.recover[[i]] = lapply(1:length(gammalist[[i]]), function(j){
-                glist = gammalist[[i]][[j]]; b = blocklist[[j]]
-                glist$matches2 = lapply(glist$matches2, function(l){
-                  l[[1]] = b$dfA.inds[l[[1]]]; l[[2]] = b$dfB.inds[l[[2]]]
-                  l
-                })
-                glist$matches1 = lapply(glist$matches1, function(l){
-                  l[[1]] = b$dfA.inds[l[[1]]]; l[[2]] = b$dfB.inds[l[[2]]]
-                  l
-                })
-                glist$nas = lapply(1:2, function(i){
-                  b[[i]][glist$nas[[i]]]
-                })
-                glist
-              })
-              gammalist.recover[[i]]$matches2 = do.call('c',lapply(gammalist.recover[[i]],'[[','matches2'))
-              gammalist.recover[[i]]$matches1 = do.call('c',lapply(gammalist.recover[[i]],'[[','matches1'))
-              gammalist.recover[[i]]$nas = list(unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',1))),
-                                                unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',2))))
-              gammalist.recover[[i]]$.identical = unlist(lapply(gammalist.recover[[i]],'[[','.identical'))
-            }
-          }else{
-            gammalist[[i]] <- gammaCKpar(
-              dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a, cut.p = cut.p, method = stringdist.method, transform = string.transform,
-              transform.args = string.transform.args,method.args = stringdist.args, w = jw.weight, n.cores = n.cores,
-              dedupe = dedupe.df)
+        ## Warn if no variation (except for gender blocking)
+        if(!gender.field[i]){
+          if(sum(is.na(dfA[,varnames[i]])) == nrow(dfA) | length(unique(dfA[,varnames[i]])) == 1){
+            cat(paste("WARNING: You have no variation in dataset A for", varnames[i], "or all observations are missing."))
           }
-          
-        }else{
-          if(blocked){
-            templists = lapply(1:length(blocklist), function(b){
-              if(verbose) cat(paste('Processing variable', varnames[i],'for block', b,'\n'))
-              b = blocklist[[b]]
-              capture.output(res<-gammaCK2par(
-                b$dfA[,varnames[i]], b$dfB[,varnames[i]], cut.a = cut.a, method = stringdist.method, transform = string.transform,
-                transform.args = string.transform.args,method.args = stringdist.args, w = jw.weight, n.cores = n.cores,
-                dedupe = dedupe.df.blocks[b]))
-              res
-            })
-            gammalist[[i]] = templists
-            if(!estimate.only){
-              gammalist.recover[[i]] = lapply(1:length(gammalist[[i]]), function(j){
-                glist = gammalist[[i]][[j]]; b = blocklist[[j]]
-                glist$matches2 = lapply(glist$matches2, function(l){
-                  l[[1]] = b$dfA.inds[l[[1]]]; l[[2]] = b$dfB.inds[l[[2]]]
-                  l
-                })
-                glist$nas = lapply(1:2, function(i){
-                  b[[i]][glist$nas[[i]]]
-                })
-                glist
-              })
-              gammalist.recover[[i]]$matches2 = do.call('c',lapply(gammalist.recover[[i]],'[[','matches2'))
-              gammalist.recover[[i]]$nas = list(unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',1))),
-                                                unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',2))))
-              gammalist.recover[[i]]$.identical = unlist(lapply(gammalist.recover[[i]],'[[','.identical'))
-            }
-          }else{
-            gammalist[[i]] <- gammaCK2par(dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a, 
-                                          method = stringdist.method, transform = string.transform,
-                                          transform.args = string.transform.args,
-                                          method.args = stringdist.args,
-                                          w = jw.weight, n.cores = n.cores,
-                                          dedupe = dedupe.df)
+          if(sum(is.na(dfB[,varnames[i]])) == nrow(dfB) | length(unique(dfB[,varnames[i]])) == 1){
+            cat(paste("WARNING: You have no variation in dataset B for", varnames[i], "or all observations are missing."))
           }
         }
-      }else if(numeric.match[i]){
-        if(partial.match[i]){
-          if(blocked){
-            templists = lapply(1:length(blocklist), function(b){
-              if(verbose) cat(paste('Processing variable', varnames[i],'for block', b,'\n'))
-              b = blocklist[[b]]
-              capture.output(res<-gammaNUMCKpar(
-                b$dfA[,varnames[i]], b$dfB[,varnames[i]], cut.a = cut.a.num, cut.p = cut.p.num, n.cores = n.cores,
-                dedupe = dedupe.df.blocks[b]))
-              res
-            })
-            gammalist[[i]] = templists
-            if(!estimate.only){
-              gammalist.recover[[i]] = lapply(1:length(gammalist[[i]]), function(j){
-                glist = gammalist[[i]][[j]]; b = blocklist[[j]]
-                glist$matches2 = lapply(glist$matches2, function(l){
-                     l[[1]] = b$dfA.inds[l[[1]]]; l[[2]] = b$dfB.inds[l[[2]]]
-                     l
-                   })
-                glist$matches1 = lapply(glist$matches1, function(l){
-                     l[[1]] = b$dfA.inds[l[[1]]]; l[[2]] = b$dfB.inds[l[[2]]]
-                     l
+        if(sum(dfA[,varnames[i]] %in% dfB[,varnames[i]]) == 0){
+          cat(paste0("WARNING: You have no exact matches for ", varnames[i], "."))
+        }
+        
+        ## Get patterns
+        if(stringdist.match[i]){
+          if(partial.match[i]){
+            if(blocked){
+              templists = lapply(1:length(blocklist), function(b){
+                if(verbose) cat(paste('Processing variable', varnames[i],'for block', b,'\n'))
+                b = blocklist[[b]]
+                capture.output(res <- gammaCKpar(
+                  b$dfA[,varnames[i]], b$dfB[,varnames[i]], cut.a = cut.a, cut.p = cut.p, method = stringdist.method, transform = string.transform,
+                  transform.args = string.transform.args,method.args = stringdist.args, w = jw.weight, n.cores = n.cores,
+                  dedupe = dedupe.df.blocks[b]))
+                res
+              })
+              gammalist[[i]] = templists
+              if(!estimate.only){
+                gammalist.recover[[i]] = lapply(1:length(gammalist[[i]]), function(j){
+                  glist = gammalist[[i]][[j]]; b = blocklist[[j]]
+                  glist$matches2 = lapply(glist$matches2, function(l){
+                    l[[1]] = b$dfA.inds[l[[1]]]; l[[2]] = b$dfB.inds[l[[2]]]
+                    l
+                  })
+                  glist$matches1 = lapply(glist$matches1, function(l){
+                    l[[1]] = b$dfA.inds[l[[1]]]; l[[2]] = b$dfB.inds[l[[2]]]
+                    l
                   })
                   glist$nas = lapply(1:2, function(i){
-                     b[[i]][glist$nas[[i]]]
+                    b[[i]][glist$nas[[i]]]
                   })
                   glist
-              })
-              gammalist.recover[[i]]$matches2 = do.call('c',lapply(gammalist.recover[[i]],'[[','matches2'))
-              gammalist.recover[[i]]$matches1 = do.call('c',lapply(gammalist.recover[[i]],'[[','matches1'))
-              gammalist.recover[[i]]$nas = list(unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',1))),
-                                                unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',2))))
-              gammalist.recover[[i]]$.identical = unlist(lapply(gammalist.recover[[i]],'[[','.identical'))
+                })
+                gammalist.recover[[i]]$matches2 = do.call('c',lapply(gammalist.recover[[i]],'[[','matches2'))
+                gammalist.recover[[i]]$matches1 = do.call('c',lapply(gammalist.recover[[i]],'[[','matches1'))
+                gammalist.recover[[i]]$nas = list(unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',1))),
+                                                  unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',2))))
+                gammalist.recover[[i]]$.identical = unlist(lapply(gammalist.recover[[i]],'[[','.identical'))
+              }
+            }else{
+              gammalist[[i]] <- gammaCKpar(
+                dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a, cut.p = cut.p, method = stringdist.method, transform = string.transform,
+                transform.args = string.transform.args,method.args = stringdist.args, w = jw.weight, n.cores = n.cores,
+                dedupe = dedupe.df)
             }
             
           }else{
-            gammalist[[i]] <- gammaNUMCKpar(
-              dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a.num, cut.p = cut.p.num, n.cores = n.cores,
-              dedupe = dedupe.df
-            )
+            if(blocked){
+              templists = lapply(1:length(blocklist), function(b){
+                if(verbose) cat(paste('Processing variable', varnames[i],'for block', b,'\n'))
+                b = blocklist[[b]]
+                capture.output(res<-gammaCK2par(
+                  b$dfA[,varnames[i]], b$dfB[,varnames[i]], cut.a = cut.a, method = stringdist.method, transform = string.transform,
+                  transform.args = string.transform.args,method.args = stringdist.args, w = jw.weight, n.cores = n.cores,
+                  dedupe = dedupe.df.blocks[b]))
+                res
+              })
+              gammalist[[i]] = templists
+              if(!estimate.only){
+                gammalist.recover[[i]] = lapply(1:length(gammalist[[i]]), function(j){
+                  glist = gammalist[[i]][[j]]; b = blocklist[[j]]
+                  glist$matches2 = lapply(glist$matches2, function(l){
+                    l[[1]] = b$dfA.inds[l[[1]]]; l[[2]] = b$dfB.inds[l[[2]]]
+                    l
+                  })
+                  glist$nas = lapply(1:2, function(i){
+                    b[[i]][glist$nas[[i]]]
+                  })
+                  glist
+                })
+                gammalist.recover[[i]]$matches2 = do.call('c',lapply(gammalist.recover[[i]],'[[','matches2'))
+                gammalist.recover[[i]]$nas = list(unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',1))),
+                                                  unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',2))))
+                gammalist.recover[[i]]$.identical = unlist(lapply(gammalist.recover[[i]],'[[','.identical'))
+              }
+            }else{
+              gammalist[[i]] <- gammaCK2par(dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a, 
+                                            method = stringdist.method, transform = string.transform,
+                                            transform.args = string.transform.args,
+                                            method.args = stringdist.args,
+                                            w = jw.weight, n.cores = n.cores,
+                                            dedupe = dedupe.df)
+            }
+          }
+        }else if(numeric.match[i]){
+          if(partial.match[i]){
+            if(blocked){
+              templists = lapply(1:length(blocklist), function(b){
+                if(verbose) cat(paste('Processing variable', varnames[i],'for block', b,'\n'))
+                b = blocklist[[b]]
+                capture.output(res<-gammaNUMCKpar(
+                  b$dfA[,varnames[i]], b$dfB[,varnames[i]], cut.a = cut.a.num, cut.p = cut.p.num, n.cores = n.cores,
+                  dedupe = dedupe.df.blocks[b]))
+                res
+              })
+              gammalist[[i]] = templists
+              if(!estimate.only){
+                gammalist.recover[[i]] = lapply(1:length(gammalist[[i]]), function(j){
+                  glist = gammalist[[i]][[j]]; b = blocklist[[j]]
+                  glist$matches2 = lapply(glist$matches2, function(l){
+                    l[[1]] = b$dfA.inds[l[[1]]]; l[[2]] = b$dfB.inds[l[[2]]]
+                    l
+                  })
+                  glist$matches1 = lapply(glist$matches1, function(l){
+                    l[[1]] = b$dfA.inds[l[[1]]]; l[[2]] = b$dfB.inds[l[[2]]]
+                    l
+                  })
+                  glist$nas = lapply(1:2, function(i){
+                    b[[i]][glist$nas[[i]]]
+                  })
+                  glist
+                })
+                gammalist.recover[[i]]$matches2 = do.call('c',lapply(gammalist.recover[[i]],'[[','matches2'))
+                gammalist.recover[[i]]$matches1 = do.call('c',lapply(gammalist.recover[[i]],'[[','matches1'))
+                gammalist.recover[[i]]$nas = list(unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',1))),
+                                                  unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',2))))
+                gammalist.recover[[i]]$.identical = unlist(lapply(gammalist.recover[[i]],'[[','.identical'))
+              }
+              
+            }else{
+              gammalist[[i]] <- gammaNUMCKpar(
+                dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a.num, cut.p = cut.p.num, n.cores = n.cores,
+                dedupe = dedupe.df
+              )
+            }
+          }else{
+            if(blocked){
+              templists = lapply(1:length(blocklist), function(b){
+                if(verbose) cat(paste('Processing variable', varnames[i],'for block', b,'\n'))
+                b = blocklist[[b]]
+                capture.output(res<-gammaNUMCK2par(
+                  b$dfA[,varnames[i]], b$dfB[,varnames[i]], cut.a = cut.a.num, n.cores = n.cores,
+                  dedupe = dedupe.df.blocks[b]))
+                res
+              })
+              gammalist[[i]] = templists
+              if(!estimate.only){
+                gammalist.recover[[i]] = lapply(1:length(gammalist[[i]]), function(j){
+                  glist = gammalist[[i]][[j]]; b = blocklist[[j]]
+                  glist$matches2 = lapply(glist$matches2, function(l){
+                    l[[1]] = b$dfA.inds[l[[1]]]; l[[2]] = b$dfB.inds[l[[2]]]
+                    l
+                  })
+                  glist$nas = lapply(1:2, function(i){
+                    b[[i]][glist$nas[[i]]]
+                  })
+                  glist
+                })
+                gammalist.recover[[i]]$matches2 = do.call('c',lapply(gammalist.recover[[i]],'[[','matches2'))
+                gammalist.recover[[i]]$nas = list(unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',1))),
+                                                  unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',2))))
+                gammalist.recover[[i]]$.identical = unlist(lapply(gammalist.recover[[i]],'[[','.identical'))
+              }
+            }else{
+              gammalist[[i]] <- gammaNUMCK2par(
+                dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a.num, n.cores = n.cores,
+                dedupe = dedupe.df
+              )
+            }
           }
         }else{
           if(blocked){
             templists = lapply(1:length(blocklist), function(b){
               if(verbose) cat(paste('Processing variable', varnames[i],'for block', b,'\n'))
               b = blocklist[[b]]
-              capture.output(res<-gammaNUMCK2par(
-                b$dfA[,varnames[i]], b$dfB[,varnames[i]], cut.a = cut.a.num, n.cores = n.cores,
+              capture.output(res<-gammaKpar(
+                b$dfA[,varnames[i]], b$dfB[,varnames[i]], gender = gender.field[i], n.cores = n.cores,
                 dedupe = dedupe.df.blocks[b]))
               res
             })
             gammalist[[i]] = templists
             if(!estimate.only){
               gammalist.recover[[i]] = lapply(1:length(gammalist[[i]]), function(j){
-                glist = gammalist[[i]][[j]]; b = blocklist[[j]]
+                glist = gammalist[[i]][[j]]
+                b = blocklist[[j]]
                 glist$matches2 = lapply(glist$matches2, function(l){
                   l[[1]] = b$dfA.inds[l[[1]]]; l[[2]] = b$dfB.inds[l[[2]]]
                   l
@@ -515,60 +566,28 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
               gammalist.recover[[i]]$.identical = unlist(lapply(gammalist.recover[[i]],'[[','.identical'))
             }
           }else{
-            gammalist[[i]] <- gammaNUMCK2par(
-              dfA[,varnames[i]], dfB[,varnames[i]], cut.a = cut.a.num, n.cores = n.cores,
-              dedupe = dedupe.df
-            )
+            gammalist[[i]] <- gammaKpar(dfA[,varnames[i]], dfB[,varnames[i]], gender = gender.field[i], n.cores = n.cores,
+                                        dedupe = dedupe.df)
           }
-        }
-      }else{
-        if(blocked){
-          templists = lapply(1:length(blocklist), function(b){
-            if(verbose) cat(paste('Processing variable', varnames[i],'for block', b,'\n'))
-            b = blocklist[[b]]
-            capture.output(res<-gammaKpar(
-              b$dfA[,varnames[i]], b$dfB[,varnames[i]], gender = gender.field[i], n.cores = n.cores,
-              dedupe = dedupe.df.blocks[b]))
-            res
-          })
-          gammalist[[i]] = templists
-          if(!estimate.only){
-            gammalist.recover[[i]] = lapply(1:length(gammalist[[i]]), function(j){
-              glist = gammalist[[i]][[j]]
-              b = blocklist[[j]]
-              glist$matches2 = lapply(glist$matches2, function(l){
-                l[[1]] = b$dfA.inds[l[[1]]]; l[[2]] = b$dfB.inds[l[[2]]]
-                l
-              })
-              glist$nas = lapply(1:2, function(i){
-                b[[i]][glist$nas[[i]]]
-              })
-              glist
-            })
-            gammalist.recover[[i]]$matches2 = do.call('c',lapply(gammalist.recover[[i]],'[[','matches2'))
-            gammalist.recover[[i]]$nas = list(unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',1))),
-                                              unique(unlist(lapply(lapply(gammalist.recover[[i]],'[[','nas'),'[',2))))
-            gammalist.recover[[i]]$.identical = unlist(lapply(gammalist.recover[[i]],'[[','.identical'))
-          }
-        }else{
-          gammalist[[i]] <- gammaKpar(dfA[,varnames[i]], dfB[,varnames[i]], gender = gender.field[i], n.cores = n.cores,
-                                      dedupe = dedupe.df)
         }
       }
-    }
-    
-    names(gammalist) = varnames
+      names(gammalist) = varnames
       
-    end <- Sys.time()
-    if(verbose){
+      end <- Sys.time()
+      if(verbose){
         cat("Calculating matches for each variable took", round(difftime(end, start, units = "mins"), 2), "minutes.\n\n")
+      }
+      
+      if(write.gammalist){
+        fname = gsub(':', '', paste0('gammalist_',Sys.time(),'.zip'))
+        saveRDS(gammalist,fname,compress = 'xz')
+        cat('Agreement data stored in file "', fname,'"\n',sep = '')
+      } 
+    }else{
+      gammalist = gammalist.obj
     }
     
-    if(write.gammalist){
-      fname = gsub(':', '', paste0('gammalist_',Sys.time(),'.zip'))
-      saveRDS(gammalist,fname,compress = 'xz')
-      cat('Agreement data stored in file "', fname,'"\n',sep = '')
-    } 
+    
     ## Get row numbers
     nr_a <- nrow(dfA)
     nr_b <- nrow(dfB)
@@ -576,6 +595,7 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
     ## ------------------------------
     ## Get counts for zeta parameters
     ## ------------------------------
+    
     cat("Getting counts for parameter estimation.\n")
     start <- Sys.time()
     if(blocked){
