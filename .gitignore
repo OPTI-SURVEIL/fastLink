@@ -78,3 +78,20 @@ vignettes/*.pdf
 .Rbuildignore
 fastLink.Rproj
 names.csv
+Name match 1.csv
+Name match 2.csv
+Record Linkage Workflow Part 1.docx
+Record Linkage Workflow Part 2.Rmd
+Record Linkage Workflow Part 3.docx
+devel.env.RData
+filled F-curves.Rdata
+gammalist_2019-08-05 173734.zip
+gammalist_2019-08-05 173906.zip
+gammalist_2019-08-05 184244.zip
+gammalist_2019-08-05 191157.zip
+gammalist_2019-08-05 192513.zip
+gammalist_2019-08-05 193611.zip
+gammalist_2019-08-06 012136.zip
+messy_names.csv
+primes.csv
+primes.txt
