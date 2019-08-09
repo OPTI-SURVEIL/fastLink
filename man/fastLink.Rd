@@ -16,7 +16,8 @@ fastLink(dfA, dfB, varnames, stringdist.match, stringdist.method,
 
 \item{dfB}{Dataset B - to be matched to Dataset A}
 
-\item{blocklist}{An optional list of blocks of record pairs produced by blockData. If included, agreement patterns are counted within each block,
+\item{blocklist}{An optional list of blocks of record pairs produced by
+blockData. If included, agreement patterns are counted within each block,
 then aggregated together prior to EM.}
 
 \item{varnames}{A vector of variable names to use for matching. Must be
@@ -29,14 +30,18 @@ must not be present in 'numeric.match'.}
 \item{string.transform}{An optional function returning a transformation or
 list of transformations of the input strings}
 
-\item{string.transform.args}{A list of arguments to the provided string transformation function}
+\item{string.transform.args}{A list of arguments to the provided string
+transformation function}
 
 \item{stringdist.method}{String distance method for calculating similarity,
 options are: "jw" Jaro-Winkler (Default), "jaro" Jaro, and "lv" Edit. May
-also be a function for custom methods. The custom function should return a N1 by N2 matrix of similarity scores based on 
-the strings to be compared, given in the first two arguments, as well as any additional arguments, which must be passed 
-as a list to stringdist.args. If internal linkage and deduplication is desired, the custom function should be return
-a lower triangular matrix (N1 by N1) of scores for permutations of a vector of strings when the second argument is missing.}
+also be a function for custom methods. The custom function should return a
+N1 by N2 matrix of similarity scores based on the strings to be compared,
+given in the first two arguments, as well as any additional arguments,
+which must be passed as a list to stringdist.args. If internal linkage and
+deduplication is desired, the custom function should be return a lower
+triangular matrix (N1 by N1) of scores for permutations of a vector of
+strings when the second argument is missing.}
 
 \item{stringdist.args}{List of arguments to be provided to stringdist.method
 if a custom function is used.}
@@ -89,9 +94,14 @@ EM object will be returned. Can be used when running the match on a random
 sample and applying to a larger dataset, or for out-of-sample prediction of
 matches. Default is FALSE.}
 
-\item{counts.only}{Whether to stop running the algorithm after counting agreement patterns. 
-Will return the frequency table used in the EM aglorithm, as well as the list of matching indices for each field, 
-which may be used to retrieve matches at later points. Default is FALSE.}
+\item{counts.only}{Whether to stop running the algorithm after counting
+agreement patterns. Will return the frequency table used in the EM
+aglorithm, as well as the list of matching indices for each field, which
+may be used to retrieve matches at later points. Default is FALSE.}
+
+\item{gammalist.obj}{An optional previously saved result of matching the
+fields to be used during linkage. Typically would be an automatically saved
+object when \code{write.gammalist = TRUE}. If provided, algorithm skips the variable matching step.}
 
 \item{em.obj}{An EM object from a prior run of 'fastLink' or 'emlinkMARmov'.
 Parameter estimates will be applied to the matching patterns in 'dfA' and
@@ -128,9 +138,10 @@ all pairs with posterior probability greater than .85 as matches, while
 threshold.match = c(.85, .95) will return all pairs with posterior
 probability between .85 and .95 as matches.}
 
-\item{auto.threshold}{Boolean. If set to \code{TRUE}, the default, the threshold for accepting matches is automatically calculated 
-to return the closest number of matches to the overall estimated proportion. Will be set to FALSE if threshold.match is provided
-or return.all is TRUE}
+\item{auto.threshold}{Boolean. If set to \code{TRUE}, the default, the
+threshold for accepting matches is automatically calculated to return the
+closest number of matches to the overall estimated proportion. Will be set
+to FALSE if threshold.match is provided or return.all is TRUE}
 
 \item{return.all}{Whether to return the most likely match for each
 observation in dfA and dfB. Overrides user setting of
@@ -141,6 +152,13 @@ automatically dedupes all matches. Default is TRUE.}
 instead of just the indices. Default is FALSE.}
 
 \item{verbose}{Whether to print elapsed time for each step. Default is FALSE.}
+
+\item{write.gammalist}{Whether to save the agreement calculations used to
+build EM data and recover matching record pairs. This can be helpful if the
+investigator wishes to change a parameter of the linkage criteria, or
+experiment with different thresholds for match probability. Defaults to
+\code{TRUE}, and saves intermediate results to the current working
+directory as gammalist_(Sys.time).rds}
 }
 \value{
 \code{fastLink} returns a list of class 'fastLink' containing the

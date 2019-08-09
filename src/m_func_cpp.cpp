@@ -431,7 +431,7 @@ std::vector< std::vector<arma::vec> > m_func_par(const std::vector< std::vector<
 	<< threadsused << " threads out of "
 	<< omp_get_num_procs() << " are used."
 	<< std::endl;
-#pragma omp parallel for private(n, m, temp_feature, ptemp_feature, ident_feature) firstprivate(lims, lims_2, templist, ptemplist, natemplist, mf_out) schedule(dynamic)
+#pragma omp parallel for private(n, m, temp_feature, ptemp_feature, ident_feature) firstprivate(lims, lims_2, templist, ptemplist, natemplist, mf_out) 
 #endif
   
 
@@ -485,3 +485,97 @@ std::vector< std::vector<arma::vec> > m_func_par(const std::vector< std::vector<
   
 }
 
+// [[Rcpp::export]]
+std::vector< std::vector<arma::vec> > m_func_par_b(const std::vector< std::vector< std::vector< std::vector<arma::vec> > > > temp,
+                                                 const std::vector< std::vector< std::vector< std::vector<arma::vec> > > > ptemp,
+                                                 const std::vector< std::vector< std::vector<arma::vec> > > natemp,
+                                                 const std::vector< arma::vec > limit1, const std::vector < arma::vec > limit2,
+                                                 const std::vector< arma::vec > nlim1, const std::vector < arma::vec > nlim2,
+                                                 const arma::mat ind,
+                                                 const arma::vec listid,
+                                                 const std::vector< std::vector< std::vector <bool> > > identical,
+                                                 const std::vector<bool> dedupe,
+                                                 const bool matchesLink = false,
+                                                 const int threads = 1){
+  
+  //use 3rd column in ind to index list positions for blocks
+  
+  
+  // Declare objects (shared)
+  std::vector< std::vector<arma::vec> > ind_out(ind.n_rows);
+  
+  // Declare objects (private)
+  int n; int m; int blk;
+  std::vector< std::vector<arma::vec> > temp_feature;
+  std::vector< std::vector<arma::vec> > ptemp_feature;
+  std::vector <bool> ident_feature;
+  
+  // Declare objects (firstprivate)
+  std::vector< std::vector<arma::mat> > templist((temp[1]).size()); //stores matches for each feature
+  std::vector< std::vector<arma::mat> > ptemplist((ptemp[1]).size()); //stores partial matches for each feature
+  std::vector< std::vector<arma::vec> > natemplist((natemp[1]).size()); //stores missing indices for each feature
+  std::vector<arma::vec> mf_out(2);
+  arma::vec lims(2);
+  arma::vec lims_2(2);
+  ETAProgressBar pb;
+  Progress p(ind.n_rows, true, pb);
+  // Declare pragma environment
+#ifdef _OPENMP
+  omp_set_num_threads(threads);
+  int threadsused = omp_get_max_threads();
+  Rcout << "    Parallelizing calculation using OpenMP. "
+        << threadsused << " threads out of "
+        << omp_get_num_procs() << " are used."
+        << std::endl;
+#pragma omp parallel for private(n, m, blk, temp_feature, ptemp_feature, ident_feature) firstprivate(lims, lims_2, templist, ptemplist, natemplist, mf_out) 
+#endif
+  
+  
+  for(unsigned i = 0; i < ind.n_rows; i++){
+    // Get indices of the rows
+    if(p.increment()){
+      n = ind(i,0)-1; m = ind(i, 1)-1; blk = ind(i,2)-1;
+      lims(0) = (nlim1[blk])(n); lims(1) = (nlim2[blk])(m); //size
+      lims_2(0) = (limit1[blk])(n), lims_2(1) = (limit2[blk])(m); //start
+      
+      // Loop over the number of features
+      for(unsigned j = 0; j < (temp[1]).size(); j++){
+        
+        // Within this, loop over the list of each feature
+        temp_feature = (temp[blk])[j];
+        ptemp_feature = (ptemp[blk])[j];
+        ident_feature = (identical[blk])[j];
+        std::vector<arma::mat> indlist(temp_feature.size());
+        std::vector<arma::mat> pindlist(ptemp_feature.size());
+        unsigned k;
+        for(k = 0; k < temp_feature.size(); k++){
+          if(temp_feature.size() > 0){
+            indlist[k] = indexing(temp_feature[k], (limit1[blk])[n], (limit1[blk])[n+1],
+                                  (limit2[blk])[m], (limit2[blk])[m+1], ident_feature[k], dedupe[blk]); //returns 2 column matrix of matching indices for field
+          }
+          
+        }
+        for(k = 0; k < ptemp_feature.size(); k++){
+          if(ptemp_feature.size() > 0){
+            pindlist[k] = indexing(ptemp_feature[k], (limit1[blk])[n], (limit1[blk])[n+1],
+                                   (limit2[blk])[m], (limit2[blk])[m+1], ident_feature[k], dedupe[blk]); //returns 2 column matrix of partially matching indices for field
+          }
+        }
+        templist[j] = indlist;
+        ptemplist[j] = pindlist;
+        natemplist[j] = indexing_na((natemp[blk])[j], (limit1[blk])[n], (limit1[blk])[n+1],
+                                    (limit2[blk])[m], (limit2[blk])[m+1],dedupe[blk]); //returns 2 member list of na indices
+      }
+      
+      // Run m_func, initial arguments are a list of lists of 2 column matrices of matches, partial matches,
+      // and a 2 member list of missing indices for each field
+      mf_out = m_func(templist, ptemplist, natemplist, lims, lims_2, listid, 
+                      dedupe[blk], matchesLink);
+      ind_out[i] = mf_out;
+    }
+    
+  }
+  
+  return ind_out;
+  
+}

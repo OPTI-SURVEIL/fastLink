@@ -34,10 +34,10 @@ gammaKpar <- function(matAp, matBp, gender = FALSE, dedupe = F,n.cores = NULL) {
     i <- NULL
     varnm = names(matAp)
 
-    if(any(class(matAp) %in% c("tbl_df", "data.table"))){
+    if(any(class(matAp) %in% c("tbl_df", "data.table",'data.frame'))){
         matAp <- as.data.frame(matAp)[,1]
     }
-    if(any(class(matBp) %in% c("tbl_df", "data.table"))){
+    if(any(class(matBp) %in% c("tbl_df", "data.table",'data.frame'))){
         matBp <- as.data.frame(matBp)[,1]
     }
 

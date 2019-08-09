@@ -31,10 +31,10 @@
 ## ------------------------
 gammaNUMCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 1, dedupe = F) {
   varnm = names(matAp)
-    if(any(class(matAp) %in% c("tbl_df", "data.table"))){
+    if(any(class(matAp) %in% c("tbl_df", "data.table",'data.frame'))){
         matAp <- as.data.frame(matAp)[,1]
     }
-    if(any(class(matBp) %in% c("tbl_df", "data.table"))){
+    if(any(class(matBp) %in% c("tbl_df", "data.table",'data.frame'))){
         matBp <- as.data.frame(matBp)[,1]
     }
     

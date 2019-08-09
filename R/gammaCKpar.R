@@ -46,10 +46,10 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
 
     varnm = names(matAp)  
   
-    if(any(class(matAp) %in% c("tbl_df", "data.table"))){
+    if(any(class(matAp) %in% c("tbl_df", "data.table",'data.frame'))){
         matAp <- as.data.frame(matAp)[,1]
     }
-    if(any(class(matBp) %in% c("tbl_df", "data.table"))){
+    if(any(class(matBp) %in% c("tbl_df", "data.table",'data.frame'))){
         matBp <- as.data.frame(matBp)[,1]
     }
     
