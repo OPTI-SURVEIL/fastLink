@@ -104,7 +104,7 @@ tableCounts.b <- function(gammalist, blocklist, dedupe.blocks, n.cores = NULL) {
   counts.f <- as.matrix(tapply(as.numeric(gammas_mat[, 2]), gammas_mat[, 1], sum))
   counts.d <- cbind( as.numeric(row.names(counts.f)), counts.f)
   
-  if(any(dedupe.df)){
+  if(any(dedupe.blocks)){
     counts.d[counts.d[,1]==0,2] = counts.d[counts.d[,1]==0,2] - sum(excess_zeroes) #remove excess zero counts
   }
   colnames(counts.d) <- c("pattern.id", "count")

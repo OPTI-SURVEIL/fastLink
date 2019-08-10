@@ -44,7 +44,7 @@ getPatterns <- function(matchesA, matchesB, varnames,
         res2 = res2[paste(matchesB)]
         
         for(j in 1:length(matchesA)){
-          hits[j] = length(intersect(res1[[i]],res2[[i]])) > 0
+          hits[j] = length(intersect(res1[[j]],res2[[j]])) > 0
         } 
         
       }
@@ -69,7 +69,7 @@ getPatterns <- function(matchesA, matchesB, varnames,
           res2 = res2[paste(matchesB)]
           
           for(j in 1:length(matchesA)){
-            doinds[j] = length(intersect(res1[[i]],res2[[i]])) > 0
+            doinds[j] = length(intersect(res1[[j]],res2[[j]])) > 0
           }
         }
         

@@ -34,6 +34,7 @@
 #' @export
 #' @importFrom stringdist stringdistmatrix
 #' @importFrom doSNOW registerDoSNOW
+#' @importFrom parallel clusterExport
 ## ------------------------
 ## gammaCKpar: Now it takes values 0, 1, 2
 ## This function applies gamma.k

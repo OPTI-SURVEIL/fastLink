@@ -22,6 +22,7 @@
 #' Large-scale Administrative Records." Forthcoming, American Political Science Review. Available at \url{http://imai.princeton.edu/research/linkage.html}.
 #' @keywords package
 #' @import Matrix data.table
+#' @importFrom parallel clusterExport
 #' @importFrom Rcpp evalCpp
 #' @importFrom stats kmeans na.omit prcomp predict quantile var
 #' @importFrom utils data

@@ -59,7 +59,8 @@ gammaNUMCKpar.b <- function(matAp, matBp, blocklist, n.cores = NULL, cut.a = 1, 
   
   cl1 = makeCluster(n.cores)
   registerDoSNOW(cl1)
-  clusterExport(cl1, c('matrix.1','matrix.2','blocklist','dedupe.blocks','cut.a','cut.p'))
+  clusterExport(cl1, c('matrix.1','matrix.2','blocklist','dedupe.blocks','cut.a','cut.p'),
+                envir = environment())
   
   #find number of comparisons in each block
   cat('finding number of unique pairs of values of variable *', varnm, '* across all blocks \n', sep = '')
@@ -107,7 +108,8 @@ gammaNUMCKpar.b <- function(matAp, matBp, blocklist, n.cores = NULL, cut.a = 1, 
     list(indexes.2, indexes.1)
   }
   
-  clusterExport(cl1, c('difference','inpar'))
+  clusterExport(cl1, c('difference','inpar'),
+                envir = environment())
   out = vector('list',length(blocklist))
   
   if(sum(inpar)>0){

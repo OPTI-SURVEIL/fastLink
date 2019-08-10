@@ -94,7 +94,8 @@ gammaCK2par.b <- function(matAp, matBp, blocklist, n.cores = NULL, cut.a = 0.92,
     } 
   }
   
-  clusterExport(cl1, c('matrix.1','matrix.2','blocklist','dedupe.blocks','cut.a','u.trans.1','u.trans.2','method','method.args'))
+  clusterExport(cl1, c('matrix.1','matrix.2','blocklist','dedupe.blocks','cut.a','u.trans.1','u.trans.2','method','method.args'),
+                envir = environment())
   
   #find necessary packages and objects to export
   exports = pkgs = character(0)
@@ -109,7 +110,8 @@ gammaCK2par.b <- function(matAp, matBp, blocklist, n.cores = NULL, cut.a = 0.92,
     pkgs = pkgs[!(pkgs %in% c('base','.GlobalEnv'))]
   }
   
-  clusterExport(cl1, exports)
+  clusterExport(cl1, exports,
+                envir = environment())
   
   #find number of comparisons in each block
   cat('finding number of unique pairs of values of variable *', varnm, '* across all blocks \n', sep = '')
@@ -195,7 +197,8 @@ gammaCK2par.b <- function(matAp, matBp, blocklist, n.cores = NULL, cut.a = 0.92,
     indexes.2[, 2] <- indexes.2[, 2] + slice.1
     list(indexes.2)
   }
-  clusterExport(cl1, c('stringvec','inpar'))
+  clusterExport(cl1, c('stringvec','inpar'),
+                envir = environment())
   out = vector('list',length(blocklist))
   #perform comparisons on all small blocks
   

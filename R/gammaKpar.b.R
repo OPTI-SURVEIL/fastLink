@@ -19,6 +19,7 @@
 #'
 #' @export
 
+
 ## ------------------------
 ## gamma.k.par
 ## This function applies gamma.k
@@ -77,7 +78,8 @@ gammaKpar.b <- function(matAp, matBp, blocklist, gender = FALSE, dedupe.blocks, 
   
   cl1 = makeCluster(n.cores)
   registerDoSNOW(cl1)
-  clusterExport(cl1, c('matrix.1','matrix.2','blocklist','dedupe.blocks'))
+  clusterExport(cl1, c('matrix.1','matrix.2','blocklist','dedupe.blocks'),
+                envir = environment())
   
   allmatches <- foreach(i = 1:length(blocklist),.options.snow = opts1) %dopar% {
     b = blocklist[[i]]
