@@ -306,7 +306,7 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
         return.all <- FALSE
         dedupe.df <- TRUE
         if(blocked){
-          dedupe.df.blocks = sapply(blocklist, function(l) all(l$dfA.inds == l$dfB.inds))
+          dedupe.df.blocks = sapply(blocklist, function(l) identical(l$dfA.inds, l$dfB.inds))
           block_nrps[dedupe.df.blocks] = (block_nrps[dedupe.df.blocks] - sqrt(block_nrps[dedupe.df.blocks])) / 2
           keepblocks = block_nrps > 0
           blocklist = blocklist[keepblocks]

@@ -66,9 +66,10 @@ getMatches <- function(dfA, dfB, fl.out, threshold.match = 0.85, combine.dfs = T
             out <- list(dfA.match = dfA.match, dfB.match = dfB.match)
         }
     }else if(inherits(fl.out,'fastLink') && inspect.matches){
+      ord = order(fl.out$posterior,decreasing = T)
       varnames = fl.out$EM$varnames
-      dfA.match <- dfA[fl.out$matches$inds.a,varnames]
-      dfB.match <- dfB[fl.out$matches$inds.b,varnames]
+      dfA.match <- dfA[fl.out$matches$inds.a[ord],varnames]
+      dfB.match <- dfB[fl.out$matches$inds.b[ord],varnames]
       
       combinedframe = matrix('',nrow = nrow(dfA.match) * 4, ncol = ncol(dfA.match) + 1 + 'posterior' %in% names(fl.out))
       namevec = c('row.index',names(dfA.match),'p_match')
@@ -77,12 +78,12 @@ getMatches <- function(dfA, dfB, fl.out, threshold.match = 0.85, combine.dfs = T
       prefixes = c('dfA','dfB')
       if(inherits(fl.out, "fastLink.dedupe")) prefixes[2] = 'dfA'
       
-      combinedframe[seq(1,nrow(combinedframe)-3,4),1:(ncol(dfA.match)+1)] = as.matrix(cbind(paste0(prefixes[1],'.',fl.out$matches$inds.a),dfA.match))
-      combinedframe[seq(2,nrow(combinedframe)-2,4),1:(ncol(dfA.match)+1)] = as.matrix(cbind(paste0(prefixes[2],'.',fl.out$matches$inds.b),dfB.match))
+      combinedframe[seq(1,nrow(combinedframe)-3,4),1:(ncol(dfA.match)+1)] = as.matrix(cbind(paste0(prefixes[1],'.',fl.out$matches$inds.a[ord]),dfA.match))
+      combinedframe[seq(2,nrow(combinedframe)-2,4),1:(ncol(dfA.match)+1)] = as.matrix(cbind(paste0(prefixes[2],'.',fl.out$matches$inds.b[ord]),dfB.match))
       
-      patmat = as.matrix(cbind('agreement pattern:',fl.out$patterns))
+      patmat = as.matrix(cbind('agreement pattern:',fl.out$patterns[ord,]))
       if('posterior' %in% names(fl.out)){
-        patmat = cbind(patmat, round(fl.out$posterior,4))
+        patmat = cbind(patmat, round(fl.out$posterior[ord],4))
       }
       
       combinedframe[seq(3,nrow(combinedframe)-1,4),] = patmat

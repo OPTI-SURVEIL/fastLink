@@ -47,4 +47,5 @@ unpack_blocked_gammalist = function(gammalist, blocklist){
     gammalist.recover[[j]] = 
       gammalist.recover[[j]][names(gammalist.recover[[j]])[nchar(names(gammalist.recover[[j]]))>0]]
   }
+  gammalist.recover
 }
