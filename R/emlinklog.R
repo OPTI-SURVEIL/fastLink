@@ -52,6 +52,8 @@
 emlinklog <- function(patterns, nobs.a, nobs.b,
                       p.m = NULL, p.gamma.j.m = NULL, p.gamma.j.u = NULL, iter.max = 5000, tol = 1e-5, varnames = NULL) {
 
+  
+  if(is.null(varnames)) varnames = 1:(ncol(patterns)-1)
     ## OPTIONS  
     ## patterns <- tc; nobs.a <- nrow(dfA); nobs.a <- nrow(dfB); p.m <- 0.1; iter.max = 5000; 
     ## tol = 1e-5; p.gamma.k.m = NULL; p.gamma.k.u = NULL

@@ -103,9 +103,6 @@ arma::mat indexing(const std::vector<arma::vec> s, const int l1, const int l2,
       if(!index_out.is_empty()){
         // Rcout << "Original lists:" << std::endl;
         // Rcout << s0 << std::endl;
-        // Rcout << s1 << std::endl;
-        // Rcout << "Result:" << std::endl;
-        // Rcout << index_out << std::endl;
         
         index_out.col(0) -= l1;
         index_out.col(1) -= l3;//converted to index within submatrix
@@ -234,7 +231,7 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
   double val; const int nobs_a = dims[0]; const int nobs_b = dims[1];
   arma::vec nas_a; arma::vec nas_b; std::vector<SpMat> list_out(nas.size());
   arma::vec nobs_a_notnull_inb; std::vector<arma::vec> nas_extract(2);
-
+  
   // Create comparison vector of indices of nobs_a
   arma::vec nobs_a_vec(nobs_a);
   for(i = 0; i < nobs_a; i++){
@@ -250,21 +247,12 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
     // Extract indices of NAs
     nas_extract = nas[i];
     nas_a = nas_extract[0];
+    
     // Create triplet
     std::vector<Trip> tripletList;
-    
     if(dedupe){
       
-      
-      tripletList.reserve(nas_a.size() * nobs_b + nas_b.size() * nobs_a);
-      
-      //j = i + 1 : end
-      
-      //i_hat + lowerlim[0] = i
-      
-      //j_hat + lowerlim[1] = j
-      
-      //j_hat = i_hat + lowerlim[0]-lowerlim[1] + 1: end  
+      tripletList.reserve(nas_a.size() * nobs_b + nas_a.size() * nobs_a);
       
       for(j = 0; j < nas_a.size(); j++){
         for(int k = std::max(0.0,nas_a[j] + lowerlims(0) - lowerlims(1)); k < nobs_b; k++){
@@ -274,8 +262,6 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
     }else{
       nas_b = nas_extract[1];
       
-      nobs_a_notnull_inb = getNotIn(nobs_a_vec, nas_a);
-      
       // Create triplet
       tripletList.reserve(nas_a.size() * nobs_b + nas_b.size() * nobs_a);
       for(j = 0; j < nas_a.size(); j++){
@@ -284,14 +270,18 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
         }
       }
       
-      for(j = 0; j < nas_b.size(); j++){
-        for(unsigned k = 0; k < nobs_a_notnull_inb.size(); k++){
-          tripletList.push_back(Trip(nobs_a_notnull_inb[k]-1, nas_b[j]-1, val));
+      bool same_vec = approx_equal(nobs_a_vec, nas_a, "absdiff", 0.002);
+      
+      if(!same_vec){
+        nobs_a_notnull_inb = getNotIn(nobs_a_vec, nas_a); 
+        for(j = 0; j < nas_b.size(); j++){
+          for(unsigned k = 0; k < nobs_a_notnull_inb.size(); k++){
+            tripletList.push_back(Trip(nobs_a_notnull_inb[k]-1, nas_b[j]-1, val));
+          }
         }
       }
       
     }
-    
     // Convert to sparse matrix
     SpMat sp(dims(0), dims(1));
     sp.setFromTriplets(tripletList.begin(), tripletList.end());
@@ -318,8 +308,10 @@ std::vector<arma::vec> m_func(const std::vector< std::vector<arma::mat> > matche
   // Create sparse matches, pmatches object
   const std::vector<SpMat> matches_up  = unpack_matches(matches,  lims, true); //one sparse matrix for matches in each field
   const std::vector<SpMat> pmatches_up = unpack_matches(pmatches, lims, false);
-
+  
+  //Rcout << "Completed unpacking successfully ? " << std::endl;
   // Create sparse NA matrix
+  
   const std::vector<SpMat> nas_sp = create_sparse_na(nas, lims, lims_2, dedupe); //one sparse matrix for nas in each field
   
   // Add up everything
@@ -569,6 +561,7 @@ std::vector< std::vector<arma::vec> > m_func_par_b(const std::vector< std::vecto
       
       // Run m_func, initial arguments are a list of lists of 2 column matrices of matches, partial matches,
       // and a 2 member list of missing indices for each field
+      
       mf_out = m_func(templist, ptemplist, natemplist, lims, lims_2, listid, 
                       dedupe[blk], matchesLink);
       ind_out[i] = mf_out;
