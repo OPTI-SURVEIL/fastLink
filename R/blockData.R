@@ -824,19 +824,17 @@ full_block_merge = function(inds,keys,blocklist,dim, AtoB = F){
   merge_list = tapply(inds,keys,function(x)x)
   
   duped = duplicated(lapply(merge_list,sort))
-  
+  if(AtoB){
+    bigtab = t(do.call(cbind,merge_list))
+    duped = unlist(c(F, sapply(seq_along(merge_list)[-1],
+                       function(i) any(bigtab[i,] %in% bigtab[1:(i-1),]))))
+  } 
+    
   merge_list = merge_list[!duped]
   keepblocks = sapply(merge_list,'[',1)
   dropped_blocks = sapply(merge_list,function(v) v[-1])
   
-  kbs = intersect(keepblocks, unlist(dropped_blocks))
-  if(length(kbs)>0){
-    temp = do.call(rbind,lapply(kbs, function(b){
-      expand.grid.jc(which(keepblocks == b),which(sapply(merge_list, function(l) b %in% l[-1])))
-    }))
-    drops = temp[,1]
-    merge_list = merge_list[-drops]
-  }
+  #kbs = intersect(keepblocks, unlist(dropped_blocks))
   
   if(length(merge_list) == 0) return(blocklist)
   
