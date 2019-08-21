@@ -493,26 +493,30 @@ std::vector< std::vector<arma::vec> > m_func_par_b(const std::vector< std::vecto
                                                  const int threads = 1){
   
   //use 3rd column in ind to index list positions for blocks
-  
+  Rcout << "started m_func_par_b " << std::endl;
   
   // Declare objects (shared)
   std::vector< std::vector<arma::vec> > ind_out(ind.n_rows);
-  
+  Rcout << "declared shared objects " << std::endl;
   // Declare objects (private)
   int n; int m; int blk;
   std::vector< std::vector<arma::vec> > temp_feature;
   std::vector< std::vector<arma::vec> > ptemp_feature;
   std::vector <bool> ident_feature;
-  
+  Rcout << "declared private objects " << std::endl;
   // Declare objects (firstprivate)
   std::vector< std::vector<arma::mat> > templist((temp[1]).size()); //stores matches for each feature
   std::vector< std::vector<arma::mat> > ptemplist((ptemp[1]).size()); //stores partial matches for each feature
   std::vector< std::vector<arma::vec> > natemplist((natemp[1]).size()); //stores missing indices for each feature
+  Rcout << "declared firstprivate objects " << std::endl;
   std::vector<arma::vec> mf_out(2);
+  
   arma::vec lims(2);
   arma::vec lims_2(2);
+  Rcout << "declared all firstprivate objects " << std::endl;
   ETAProgressBar pb;
   Progress p(ind.n_rows, true, pb);
+  Rcout << "initialized progress bar " << std::endl;
   // Declare pragma environment
 #ifdef _OPENMP
   omp_set_num_threads(threads);
