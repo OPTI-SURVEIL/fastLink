@@ -309,10 +309,12 @@ std::vector<arma::vec> m_func(const std::vector< std::vector<arma::mat> > matche
   const std::vector<SpMat> matches_up  = unpack_matches(matches,  lims, true); //one sparse matrix for matches in each field
   const std::vector<SpMat> pmatches_up = unpack_matches(pmatches, lims, false);
   
-  //Rcout << "Completed unpacking successfully ? " << std::endl;
+  Rcout << "Completed unpacking successfully in mfunc " << std::endl;
   // Create sparse NA matrix
   
   const std::vector<SpMat> nas_sp = create_sparse_na(nas, lims, lims_2, dedupe); //one sparse matrix for nas in each field
+  
+  Rcout << "Completed sparse Nas successfully in mfunc " << std::endl;
   
   // Add up everything
   SpMat sp(lims(0), lims(1));
@@ -530,6 +532,8 @@ std::vector< std::vector<arma::vec> > m_func_par_b(const std::vector< std::vecto
       lims(0) = (nlim1[blk])(n); lims(1) = (nlim2[blk])(m); //size
       lims_2(0) = (limit1[blk])(n), lims_2(1) = (limit2[blk])(m); //start
       
+      Rcout << "Checkpoint 1 - starting loop over features" << std::endl;
+      
       // Loop over the number of features
       for(unsigned j = 0; j < (temp[1]).size(); j++){
         
@@ -539,12 +543,17 @@ std::vector< std::vector<arma::vec> > m_func_par_b(const std::vector< std::vecto
         ident_feature = (identical[blk])[j];
         std::vector<arma::mat> indlist(temp_feature.size());
         std::vector<arma::mat> pindlist(ptemp_feature.size());
+        Rcout << "feature" << std::endl;
+        Rcout << j << std::endl;
+        
+        
         unsigned k;
         for(k = 0; k < temp_feature.size(); k++){
           if(temp_feature.size() > 0){
             indlist[k] = indexing(temp_feature[k], (limit1[blk])[n], (limit1[blk])[n+1],
                                   (limit2[blk])[m], (limit2[blk])[m+1], ident_feature[k], dedupe[blk]); //returns 2 column matrix of matching indices for field
           }
+          Rcout << "Completed temp for feature" << j << std::endl;
           
         }
         for(k = 0; k < ptemp_feature.size(); k++){
@@ -557,10 +566,13 @@ std::vector< std::vector<arma::vec> > m_func_par_b(const std::vector< std::vecto
         ptemplist[j] = pindlist;
         natemplist[j] = indexing_na((natemp[blk])[j], (limit1[blk])[n], (limit1[blk])[n+1],
                                     (limit2[blk])[m], (limit2[blk])[m+1],dedupe[blk]); //returns 2 member list of na indices
+        Rcout << "Completed natemp for feature" << j << "in round " << i << std::endl;
       }
       
       // Run m_func, initial arguments are a list of lists of 2 column matrices of matches, partial matches,
       // and a 2 member list of missing indices for each field
+      
+      Rcout << "Checkpoint 2 - starting m_func in block "<< i << std::endl;
       
       mf_out = m_func(templist, ptemplist, natemplist, lims, lims_2, listid, 
                       dedupe[blk], matchesLink);
