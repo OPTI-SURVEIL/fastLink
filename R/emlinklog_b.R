@@ -155,8 +155,11 @@ emlinklog_b <- function(patterns, nobs.a, nobs.b,
     pat <- replace(pat, TRUE, lapply(pat, factor))
     
     mm.m = model.matrix(as.formula(paste('~ .',paste(ilist$m,collapse = '+'),sep = '+')), pat)[,-1]
-    mm.u = model.matrix(as.formula(paste('~ .',paste(ilist$m,collapse = '+'),sep = '+')), pat)[,-1]
+    mm.u = model.matrix(as.formula(paste('~ .',paste(ilist$u,collapse = '+'),sep = '+')), pat)[,-1]
     
+    #drop interaction terms for missingness
+    dropcols = grepl('0:|:.*0$',colnames(mm.m)); mm.m = mm.m[,!dropcols]
+    dropcols = grepl('0:|:.*0$',colnames(mm.u)); mm.u = mm.u[,!dropcols]
     ## The EM Algorithm presented in the paper starts here:
     while (abs(delta) >= tol) {
         
