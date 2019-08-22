@@ -1,9 +1,9 @@
-#' emlinklog
+#' emlinklog_b
 #'
 #' Expectation-Maximization algorithm for Record Linkage 
 #' allowing for dependencies across linkage fields
 #'
-#' @usage emlinklog(patterns, nobs.a, nobs.b, p.m, p.gamma.j.m, p.gamma.j.u,
+#' @usage emlinklog_b(patterns, nobs.a, nobs.b, p.m, p.gamma.j.m, p.gamma.j.u,
 #' iter.max, tol, varnames)
 #'
 #' @param patterns table that holds the counts for each unique agreement

@@ -2,9 +2,9 @@
 % Please edit documentation in R/emlinklog_b.R
 \name{emlinklog_b}
 \alias{emlinklog_b}
-\title{emlinklog}
+\title{emlinklog_b}
 \usage{
-emlinklog(patterns, nobs.a, nobs.b, p.m, p.gamma.j.m, p.gamma.j.u,
+emlinklog_b(patterns, nobs.a, nobs.b, p.m, p.gamma.j.m, p.gamma.j.u,
 iter.max, tol, varnames)
 }
 \arguments{
