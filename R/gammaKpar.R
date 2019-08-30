@@ -107,7 +107,8 @@ gammaKpar <- function(matAp, matBp, gender = FALSE, dedupe = F,n.cores = NULL) {
         
       } else {
         final.list <- mclapply(matches.l, function(s){
-          ht1[[s]] <- which(matrix.1 == s); ht2[[s]] <- ifelse(dedupe, ht1[[s]], which(matrix.2 == s));
+          ht1[[s]] <- which(matrix.1 == s) 
+          if(dedupe){ ht2[[s]] <- ht1[[s]]}else{ht2[[s]] = which(matrix.2 == s)}
           list(ht1[[s]], ht2[[s]]) }, mc.cores = getOption("mc.cores", n.cores))
       }
       
