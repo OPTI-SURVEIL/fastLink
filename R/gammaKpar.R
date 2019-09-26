@@ -10,6 +10,7 @@
 #' standard warnings of missingness/nonvariability. Default is FALSE.
 #' @param dedupe Logical indicator for whether internal linkage and duplication is taking place
 #' @param n.cores Number of cores to parallelize over. Default is NULL.
+#' @param inverse Logical indicator for whether the function is being called to block nonmatches on some field
 #'
 #' @return \code{gammaKpar} returns a list with the indices corresponding to each
 #' matching pattern, which can be fed directly into \code{tableCounts} and \code{matchesLink}.
@@ -28,7 +29,8 @@
 ## in parallel
 ## ------------------------
 
-gammaKpar <- function(matAp, matBp, gender = FALSE, dedupe = F,n.cores = NULL) {
+gammaKpar <- function(matAp, matBp, gender = FALSE, dedupe = F,n.cores = NULL,
+                      inverse = F) {
 
     ## For visible bindings
     i <- NULL
@@ -99,7 +101,10 @@ gammaKpar <- function(matAp, matBp, gender = FALSE, dedupe = F,n.cores = NULL) {
         
         final.list <- foreach(i = 1:length(matches.l), .options.snow = opts) %oper% {
           ht1 <- which(matrix.1 == matches.l[[i]]); 
-          if(dedupe){ht2 = ht1} else{ht2 <- which(matrix.2 == matches.l[[i]])}
+          if(dedupe){ht2 = ht1} else if(inverse){
+              ht2 <- which(matrix.2 != matches.l[[i]])
+            } else{
+                ht2 <- which(matrix.2 == matches.l[[i]])}
           list(ht1, ht2)
         }
         
