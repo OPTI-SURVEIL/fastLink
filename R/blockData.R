@@ -83,6 +83,7 @@ stringSubset <- function(vecA, vecB,
 #' number of clusters where the average cluster size is 100,000 observations.
 #' @param iter.max Maximum number of iterations for the k-means algorithm to run. Default is 5000
 #' @param n.cores Number of cores to parallelize over. Default is NULL.
+#' @param inverse.block Vector of variable names for which blocked records should NOT agree. Used during posterior match recalculation with fuzzy name matching, for instance
 #'
 #' @return A list with an entry for each block. Each list entry contains two vectors --- one with the indices indicating the block members in dataset A,
 #' and another containing the indices indicating the block members in dataset B.
@@ -98,7 +99,7 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
                       kmeans.block = NULL,
                       nclusters = max(round(min(nrow(dfA), nrow(dfB)) / 100000, 0), 1),                      
                       iter.max = 5000, 
-                      n.cores = NULL){
+                      n.cores = NULL, inverse.block = NULL){
 
     cat("\n")
     cat(c(paste(rep("=", 20), sep = "", collapse = ""), "\n"))
@@ -146,7 +147,9 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
     cat("Blocking variables.\n")
     gammalist <- vector(mode = "list", length = length(varnames))
     for(i in 1:length(varnames)){
-        blocktype <- ifelse(varnames[i] %in% window.block, "window", ifelse(varnames[i] %in% kmeans.block, "k-means", "exact"))
+        blocktype <- ifelse(varnames[i] %in% window.block, "window", 
+                            ifelse(varnames[i] %in% kmeans.block, "k-means", 
+                                   ifelse(varnames[i] %in% inverse.block, "inverse", "exact")))
         cat("    Blocking variable", varnames[i], "using", blocktype, "blocking.\n")
         if(varnames[i] %in% window.block){
             gammalist[[i]] <- gammaNUMCK2par(dfA[,varnames[i]], dfB[,varnames[i]], n.cores = n.cores, cut.a = window.size,dedupe = dedupe)
@@ -156,7 +159,8 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
                                           iter.max = iter.max,
                                           n.cores = n.cores)
         }else{
-            gammalist[[i]] <- gammaKpar(dfA[,varnames[i]], dfB[,varnames[i]], gender = FALSE, n.cores = n.cores)
+            gammalist[[i]] <- gammaKpar(dfA[,varnames[i]], dfB[,varnames[i]], gender = FALSE, n.cores = n.cores,
+                                        inverse = blocktype == 'inverse')
         }
     }
     #add comparisons of all missing indices to all nonmissing, and to each other
@@ -368,7 +372,6 @@ consolidate_blocks = function(...,dedupe = F){
   Bblockmat = sparseMatrix(i = Binds[,1], j = Binds[,2], x = 1)
   
   olap = triu(t(Ablockmat) %*% Ablockmat * (t(Bblockmat) %*% Bblockmat),k = 1)
-  olap_swtch = triu(t(Ablockmat) %*% Bblockmat * (t(Bblockmat) %*% Ablockmat),k = 1)
   
   swtch = T
   
