@@ -235,7 +235,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
   if(!is.null(keyvar)) true.pmatch = Reduce('+',true.counts) / counts  
   
   incl = !is.na(posteriors)
-  res = list(posteriors = posteriors[incl], counts = counts[incl], binmatches = binmatches[incl])
+  res = list(posteriors = posteriors[incl], counts = counts[incl], binmatches = binmatches[incl], matchkeys = matchkeys)
   if(!is.null(keyvar)) res$true.pmatch = true.pmatch[incl]
   res
 }
