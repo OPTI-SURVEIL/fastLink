@@ -17,6 +17,30 @@ combo_deindexer = function(inds,N){
   cbind(i,j)
 }
 
+#scale isotonic regression by prior mixing proportion of matches to nonmatches
+isoreg_scale = function(isoreg, p.m){
+  ys = 1 / ((1 / isoreg$y - 1) / ((1-isoreg$p.m)/isoreg$p.m) * ((1-p.m)/p.m) + 1)
+  isoreg$y = ys
+  isoreg$p.m = p.m
+  isoreg
+}
+
+#fit isotonic regression to similarity scores
+fit.isored <- function(isored, x0){
+  x = isored$x
+  y = isored$y
+  ind = cut(x0, breaks = x, labels = FALSE, include.lowest = TRUE)
+  min.x <- min(x)
+  max.x <- max(x)
+  ind[x0 > max.x] = length(x)
+  ind[x0 < min.x] = 1
+  
+  slope = c(diff(y)/diff(x),0)
+  val = y[ind] + pmax(x0 - x[ind],0) * slope[ind]
+  val
+}
+
+
 
 #unpack blocked gammalist
 unpack_blocked_gammalist = function(gammalist, blocklist){

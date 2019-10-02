@@ -84,6 +84,7 @@ stringSubset <- function(vecA, vecB,
 #' @param iter.max Maximum number of iterations for the k-means algorithm to run. Default is 5000
 #' @param n.cores Number of cores to parallelize over. Default is NULL.
 #' @param inverse.block Vector of variable names for which blocked records should NOT agree. Used during posterior match recalculation with fuzzy name matching, for instance
+#' @param na.block Vector of variable names for blocked records should have missing comparisons. Used during posterior match recalculation with fuzzy name matching, for instance
 #'
 #' @return A list with an entry for each block. Each list entry contains two vectors --- one with the indices indicating the block members in dataset A,
 #' and another containing the indices indicating the block members in dataset B.
@@ -99,8 +100,8 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
                       kmeans.block = NULL,
                       nclusters = max(round(min(nrow(dfA), nrow(dfB)) / 100000, 0), 1),                      
                       iter.max = 5000, 
-                      n.cores = NULL, inverse.block = NULL){
-
+                      n.cores = NULL, inverse.block = NULL, na.block = NULL){
+  
     cat("\n")
     cat(c(paste(rep("=", 20), sep = "", collapse = ""), "\n"))
     cat("blockData(): Blocking Methods for Record Linkage\n")
@@ -163,7 +164,7 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
                                         inverse = blocktype == 'inverse')
         }
     }
-    #add comparisons of all missing indices to all nonmissing, and to each other
+    #add comparisons of all missing indices to all nonmissing, and to each other, only if inverse block is null
     na.lists = lapply(gammalist, '[[','nas')
     allinds = list(1:nrow(dfA), 1:nrow(dfB))
     
@@ -202,7 +203,7 @@ blockData <- function(dfA, dfB, varnames, window.block = NULL,
     ## Combine blocks
     ## --------------
     cat("Combining blocked variables for final blocking assignments.\n\n")
-    combineblocks_out <- combineBlocks(gammalist)
+    combineblocks_out <- combineBlocks(gammalist, c(nrow(dfA), nrow(dfB)))
     indlist_a <- which(combineblocks_out$dfA.block, arr.ind = T)
     indlist_a <- tapply(indlist_a[,1],indlist_a[,2], function(x) x)
     indlist_b <- which(combineblocks_out$dfB.block, arr.ind = T)
@@ -227,7 +228,7 @@ is.prime <- function(x)
   vapply(x, function(y) sum(y / 1:y == y %/% 1:y), integer(1L)) == 2L
 
 
-combineBlocks <- function(blocklist){
+combineBlocks <- function(blocklist,df.dims){
   if(length(blocklist) > 1){
     primes = (2:500)[is.prime(2:500)]
     
@@ -302,8 +303,8 @@ combineBlocks <- function(blocklist){
     
   indsA_out <- do.call(rbind, indsA_out)
   indsB_out <- do.call(rbind, indsB_out)
-  matA_out <- sparseMatrix(i = indsA_out[,1], j = indsA_out[,2])
-  matB_out <- sparseMatrix(i = indsB_out[,1], j = indsB_out[,2])
+  matA_out <- sparseMatrix(i = indsA_out[,1], j = indsA_out[,2],dims = c(df.dims[1],nrow(blkgrps)))
+  matB_out <- sparseMatrix(i = indsB_out[,1], j = indsB_out[,2],dims = c(df.dims[2],nrow(blkgrps)))
     
   out <- list(dfA.block = matA_out, dfB.block = matB_out)
   class(out) <- "fastLink.block"
@@ -1083,3 +1084,136 @@ checkres = function(blocklist, keys){
   if(!check) cat("SOME INDICES MISSING AFTER PREVIOUS STEP!!!!!!!! \n")
   return(check)
 }
+
+
+thin_blocks = function(blocklist,antiblocklist,dedupe = F, dims){
+  
+  ab = unique(antiblocklist) #antiblocklist[order(sapply(antiblocklist,length))]
+  
+  #for(ab in antiblocklist){
+    
+    Ainds_anti = do.call(rbind,lapply(1:length(ab),function(i){
+      cbind(ab[[i]]$dfA.inds,i)
+    }))
+    Ablockmat_anti = sparseMatrix(i = Ainds_anti[,1], j = Ainds_anti[,2], x=1, dims = c(dims[1],length(ab)))
+    
+    #Ablockmat_anti = sparseMatrix(i = Ainds_anti[,1], j = Ainds_anti[,2])
+    
+    Binds_anti = do.call(rbind,lapply(1:length(ab),function(i){
+      cbind(ab[[i]]$dfB.inds,i)
+    }))
+    Bblockmat_anti = sparseMatrix(i = Binds_anti[,1], j = Binds_anti[,2], x=1, dims = c(dims[2],length(ab)))
+    
+    #step 1: delete parts of blocks that are fully contained
+    swtch = T
+    recalc = T
+    while(swtch){
+      swtch = F
+      if(recalc){
+        Ainds = do.call(rbind,lapply(1:length(blocklist),function(i){
+          cbind(blocklist[[i]]$dfA.inds,i)
+        }))
+        Binds = do.call(rbind,lapply(1:length(blocklist),function(i){
+          cbind(blocklist[[i]]$dfB.inds,i)
+        }))
+        Ablockmat = sparseMatrix(i = Ainds[,1], j = Ainds[,2],x=1, dims = c(dims[1],length(blocklist)))
+        Bblockmat = sparseMatrix(i = Binds[,1], j = Binds[,2],x=1, dims = c(dims[2],length(blocklist)))
+        recalc = F
+      }
+      
+      overs = t(Ablockmat) %*% Ablockmat_anti * (t(Bblockmat) %*% Bblockmat_anti)
+      overlaps = matrix(which(overs>0, arr.ind = T),ncol = 2)
+      overs = overs@x
+      
+      do = unique(overlaps[,1])
+      
+      
+      if(length(do)>0){
+        doblock = sapply(do, function(i){
+          inds = overlaps[,1] == i
+          overlaps[inds,2][which.max(overs[inds])]
+        })
+        
+        newblocks = do.call(c,lapply(seq_along(do), function(i){
+          i_ = do[i]
+          b = blocklist[[i_]]; u = ab[[doblock[i]]]
+          
+          Acomm = intersect(b$dfA.inds, u$dfA.inds)
+          Adiff = setdiff(b$dfA.inds, u$dfA.inds)
+          Bdiff = setdiff(b$dfB.inds, u$dfB.inds)
+          
+          incl = c(length(Bdiff) > 0, length(Adiff) > 0)
+            
+          list(list(dfA.inds = Acomm, dfB.inds = Bdiff), list(dfA.inds = Adiff, dfB.inds = b$dfB.inds))[incl]
+        }))
+        blocklist = c(blocklist[-do], newblocks)
+        recalc = T
+        swtch = T
+      }
+    }
+    #if dedupe, dim A to B
+    if(dedupe){
+      swtch = T
+      while(swtch){
+        swtch = F
+        if(recalc){
+          Ainds = do.call(rbind,lapply(1:length(blocklist),function(i){
+            cbind(blocklist[[i]]$dfA.inds,i)
+          }))
+          Binds = do.call(rbind,lapply(1:length(blocklist),function(i){
+            cbind(blocklist[[i]]$dfB.inds,i)
+          }))
+          Ablockmat = sparseMatrix(i = Ainds[,1], j = Ainds[,2],x=1, dims = c(dims[1],length(blocklist)))
+          Bblockmat = sparseMatrix(i = Binds[,1], j = Binds[,2],x=1, dims = c(dims[2],length(blocklist)))
+          recalc = F
+        }
+        
+        overs = t(Ablockmat) %*% Bblockmat_anti * (t(Bblockmat) %*% Ablockmat_anti)
+        overlaps = matrix(which(overs>0, arr.ind = T),ncol = 2)
+        overs = overs@x
+        
+        do = unique(overlaps[,1])
+
+        if(length(do)>0){
+          doblock = sapply(do, function(i){
+            inds = overlaps[,1] == i
+            overlaps[inds,2][which.max(overs[inds])]
+          })
+          
+          newblocks = do.call(c,lapply(seq_along(do), function(i){
+            i_ = do[i]
+            b = blocklist[[i_]]; u = ab[[doblock[i]]]
+            
+            Acomm = intersect(b$dfA.inds, u$dfB.inds)
+            Adiff = setdiff(b$dfA.inds, u$dfB.inds)
+            Bdiff = setdiff(b$dfB.inds, u$dfA.inds)
+            
+            incl = c(length(Bdiff) > 0, length(Adiff) > 0)
+            
+            list(list(dfA.inds = Acomm, dfB.inds = Bdiff), list(dfA.inds = Adiff, dfB.inds = b$dfB.inds))[incl]
+          }))
+          blocklist = c(blocklist[-do], newblocks)
+          recalc = T
+          swtch = T
+        }
+      }
+      #and finally, subset out duplicate indices as separate blocks
+      duped_inds = sapply(blocklist, function(x) any(x[[1]] %in% x[[2]]) & !identical(x[[1]], x[[2]]))
+      if(any(duped_inds)){
+        newblocks = do.call(c,lapply(blocklist[duped_inds], function(x){
+          comm = intersect(x[[1]],x[[2]])
+          diff1 = setdiff(x[[1]],x[[2]])
+          diff2 = setdiff(x[[2]],x[[1]])
+          
+          incl = c(T, length(diff1)>0, length(diff2)>0)
+          list(list(dfA.inds = comm, dfB.inds = comm),
+               list(dfA.inds = diff1, dfB.inds = x[[2]]),
+               list(dfA.inds = x[[1]], dfB.inds = diff2))[incl]
+        }))
+        blocklist = c(blocklist[!duped_inds], newblocks)
+      }
+    }
+  #}
+  blocklist
+}
+  

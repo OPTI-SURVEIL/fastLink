@@ -17,6 +17,8 @@ standard warnings of missingness/nonvariability. Default is FALSE.}
 \item{dedupe}{Logical indicator for whether internal linkage and duplication is taking place}
 
 \item{n.cores}{Number of cores to parallelize over. Default is NULL.}
+
+\item{inverse}{Logical indicator for whether the function is being called to block nonmatches on some field}
 }
 \value{
 \code{gammaKpar} returns a list with the indices corresponding to each

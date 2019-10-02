@@ -30,6 +30,10 @@ number of clusters where the average cluster size is 100,000 observations.}
 \item{iter.max}{Maximum number of iterations for the k-means algorithm to run. Default is 5000}
 
 \item{n.cores}{Number of cores to parallelize over. Default is NULL.}
+
+\item{inverse.block}{Vector of variable names for which blocked records should NOT agree. Used during posterior match recalculation with fuzzy name matching, for instance}
+
+\item{na.block}{Vector of variable names for blocked records should have missing comparisons. Used during posterior match recalculation with fuzzy name matching, for instance}
 }
 \value{
 A list with an entry for each block. Each list entry contains two vectors --- one with the indices indicating the block members in dataset A,
