@@ -117,9 +117,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
   progress <- function(n) setTxtProgressBar(pb, n)
   opts <- list(progress = progress)
   
-  exports = pkgs = character(0)
-  depsm = fastLink:::find_dependencies(method)
-    
+  depsm = find_dependencies(method)
   exports = unique(c(depsm$depends$calls[sapply(depsm$depends$pkgs,function(x) '.GlobalEnv' %in% x)]))#,
     
   pkgs = unique(c(unlist(depsm$depends$pkgs)))#,unlist(depst$depends$pkgs)))
@@ -136,12 +134,11 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
     utrans2 = uvals2
   }
   
-  clusterExport(cl, exports)
-  # c('ind','newzeta', 'posteriors', 'binmatches', 'counts','true.counts','uvals1','uvals2','utrans1',
-  #                     'utrans2','dfA','dfB','temp','ptemp','natemp','limit.1','limit.2','n.lim.1','n.lim.2','list.id',
-  #                     'identical','dedupe','targkeys','fastlinkres','keyvar','varname','method','method.args',
-  #                     'isoreg',exports))
-  # 
+  clusterExport(cl, c('ind','uvals1','uvals2','utrans1',
+                      'utrans2','dfA','dfB','temp','ptemp','natemp','limit.1','limit.2','n.lim.1','n.lim.2','list.id',
+                      'identical','dedupe','targkeys','fastlinkres','keyvar','varname','method','method.args',
+                      'isoreg',exports))
+
   res = foreach(i = chunkseq, .packages = unique(c('Matrix',pkgs)), .options.snow = opts) %dopar% {
     newzeta = seq(0,1,resolution)
     posteriors = newzeta[1:(1/resolution)] + resolution/2
@@ -149,7 +146,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
     names(binmatches) = paste0('matches', posteriors)
     true.counts = counts = 0 * posteriors
     
-    matches = fastLink:::m_func_par(temp = temp, ptemp = ptemp, natemp = natemp,
+    matches = m_func_par(temp = temp, ptemp = ptemp, natemp = natemp,
                          limit1 = limit.1, limit2 = limit.2,
                          nlim1 = n.lim.1, nlim2 = n.lim.2,
                          ind = matrix(ind[i, ],ncol=2), listid = list.id,
