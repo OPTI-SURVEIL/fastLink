@@ -26,14 +26,21 @@
 #' of match given the classifier score falls below this threshold are not evaluated. Defaults to 0.5.
 #' @param drop.lowest Whether to drop matched indices from the lowest probability bin - this can save a lot of memory and processing wasted on nonmatches
 #' @param keyvar optional variable name used to distinguish true match identity
+#' @param cluster optionally provide a pre-made cluster object. can help with repeated cluster startup times.
 #' @return \code{post_proc_gamma} returns a list with the binned posterior counts, probabilities, and matching indices at each level but the lowest
 #'
 #' @export
 
 post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, isoreg, method, method.args,
                            transform = NULL, transform.args = NULL, n.cores = NULL, chunksize = 300^2, resolution = 1e-2,
-                           min.posterior = 0.5, drop.lowest = T, keyvar = NULL){
+                           min.posterior = 0.5, drop.lowest = T, keyvar = NULL, cluster = NULL){
   
+  if(!is.null(cluster)){
+    parallel::clusterEvalQ(cluster, rm(list = ls()))
+    parallel::clusterEvalQ(cluster, gc())
+  }
+    
+    
   dedupe = identical(dfA,dfB)
   if(is.null(n.cores)) n.cores = parallel::detectCores() - 1
   
@@ -111,7 +118,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
   
   chunkseq = lapply(seq(1,nrow(ind),n.chunks), function(i) seq(i,min(i+n.chunks-1,nrow(ind)),1))
   
-  cl = makeCluster(min(n.cores, length(chunkseq)))
+  if(is.null(cluster)){cl = makeCluster(min(n.cores, length(chunkseq)))} else{ cl = cluster} 
   registerDoSNOW(cl)
   pb = txtProgressBar(0,length(chunkseq))
   progress <- function(n) setTxtProgressBar(pb, n)
