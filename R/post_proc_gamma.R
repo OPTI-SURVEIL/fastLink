@@ -137,6 +137,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
     '%oper%' <- foreach::'%do%'
     chunkseq = list(1:nrow(ind))
     pkgs = NULL; exports = NULL
+    opts = list()
   }
 
   
