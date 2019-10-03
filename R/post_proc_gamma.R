@@ -141,12 +141,12 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
     utrans2 = uvals2
   }
   
-  clusterExport(cl, c('ind','uvals1','uvals2','utrans1',
-                      'utrans2','dfA','dfB','temp','ptemp','natemp','limit.1','limit.2','n.lim.1','n.lim.2','list.id',
-                      'identical','dedupe','targkeys','fastlinkres','keyvar','varname','method','method.args',
-                      'isoreg',exports),envir = environment())
+  # clusterExport(cl, c('ind','uvals1','uvals2','utrans1',
+  #                     'utrans2','dfA','dfB','temp','ptemp','natemp','limit.1','limit.2','n.lim.1','n.lim.2','list.id',
+  #                     'identical','dedupe','targkeys','fastlinkres','keyvar','varname','method','method.args',
+  #                     'isoreg',exports),envir = environment())
 
-  res = foreach(i = chunkseq, .packages = unique(c('Matrix',pkgs)), .options.snow = opts) %dopar% {
+  res = foreach(i = chunkseq, .packages = unique(c('Matrix',pkgs)), .options.snow = opts, .exports = exports) %dopar% {
     newzeta = seq(0,1,resolution)
     posteriors = newzeta[1:(1/resolution)] + resolution/2
     binmatches = lapply(posteriors,function(x)list())
