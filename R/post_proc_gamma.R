@@ -146,7 +146,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
   #                     'identical','dedupe','targkeys','fastlinkres','keyvar','varname','method','method.args',
   #                     'isoreg',exports),envir = environment())
 
-  res = foreach(i = chunkseq, .packages = unique(c('Matrix',pkgs)), .options.snow = opts, .exports = exports) %dopar% {
+  res = foreach(i = chunkseq, .packages = unique(c('Matrix',pkgs)), .options.snow = opts, .export = exports) %dopar% {
     newzeta = seq(0,1,resolution)
     posteriors = newzeta[1:(1/resolution)] + resolution/2
     binmatches = lapply(posteriors,function(x)list())
