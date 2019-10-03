@@ -22,6 +22,7 @@
 #' This parameter defaults to 90000, but may need to be adjusted for best performance, 
 #' depending on the number of record pairs evaluated and the complexity of the fuzzy matching method
 #' @param resolution 1/Number of probability bins over which to aggregate results. Defaults to 1e-2 (100 bins)
+#' @param unblocked.size Number of comparisons considered before resorting to parallel operations - can be tweaked to speed up performance in some scenarios
 #' @param min.posterior Sets a cap to decide which agreement patterns are evaluated for fuzzy matching. Blocks for which the maximum attainable probability 
 #' of match given the classifier score falls below this threshold are not evaluated. Defaults to 0.5.
 #' @param drop.lowest Whether to drop matched indices from the lowest probability bin - this can save a lot of memory and processing wasted on nonmatches
@@ -32,7 +33,7 @@
 #' @export
 
 post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, isoreg, method, method.args,
-                           transform = NULL, transform.args = NULL, n.cores = NULL, chunksize = 300^2, resolution = 1e-2,
+                           transform = NULL, transform.args = NULL, n.cores = NULL, chunksize = 300^2, resolution = 1e-2, unblocked.size = 2e6,
                            min.posterior = 0.5, drop.lowest = T, keyvar = NULL, cluster = NULL){
   
   if(!is.null(cluster)){
@@ -118,17 +119,26 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
   
   chunkseq = lapply(seq(1,nrow(ind),n.chunks), function(i) seq(i,min(i+n.chunks-1,nrow(ind)),1))
   
-  if(is.null(cluster)){cl = makeCluster(min(n.cores, length(chunkseq)))} else{ cl = cluster} 
-  registerDoSNOW(cl)
-  pb = txtProgressBar(0,length(chunkseq))
-  progress <- function(n) setTxtProgressBar(pb, n)
-  opts <- list(progress = progress)
   
-  depsm = find_dependencies(method)
-  exports = unique(c(depsm$depends$calls[sapply(depsm$depends$pkgs,function(x) '.GlobalEnv' %in% x)]))#,
+  
+  if(sum(counts_old)>unblocked.size){
+    if(is.null(cluster)){cl = makeCluster(min(n.cores, length(chunkseq)))} else{ cl = cluster} 
+    registerDoSNOW(cl)
+    pb = txtProgressBar(0,length(chunkseq))
+    progress <- function(n) setTxtProgressBar(pb, n)
+    opts <- list(progress = progress)
+    '%oper%' <- foreach::'%dopar%'
+    depsm = find_dependencies(method)
+    exports = unique(c(depsm$depends$calls[sapply(depsm$depends$pkgs,function(x) '.GlobalEnv' %in% x)]))
+    pkgs = unique(c(unlist(depsm$depends$pkgs)))#,unlist(depst$depends$pkgs)))
+    pkgs = pkgs[!(pkgs %in% c('base','.GlobalEnv'))]
     
-  pkgs = unique(c(unlist(depsm$depends$pkgs)))#,unlist(depst$depends$pkgs)))
-  pkgs = pkgs[!(pkgs %in% c('base','.GlobalEnv'))]
+  }else{
+    '%oper%' <- foreach::'%do%'
+    chunkseq = list(1:nrow(ind))
+    pkgs = NULL; exports = NULL
+  }
+
   
   uvals1 = unique(dfA[[varname]])
   uvals2 = unique(dfB[[varname]])
@@ -146,7 +156,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
   #                     'identical','dedupe','targkeys','fastlinkres','keyvar','varname','method','method.args',
   #                     'isoreg',exports),envir = environment())
 
-  res = foreach(i = chunkseq, .packages = unique(c('Matrix',pkgs)), .options.snow = opts, .export = exports) %dopar% {
+  res = foreach(i = chunkseq, .packages = unique(c('Matrix',pkgs)), .options.snow = opts, .export = exports) %oper% {
     newzeta = seq(0,1,resolution)
     posteriors = newzeta[1:(1/resolution)] + resolution/2
     binmatches = lapply(posteriors,function(x)list())
@@ -229,7 +239,8 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
     #res = lapply(res,'[',ret)
     res
   }
-  stopCluster(cl)
+  if(sum(counts_old)>unblocked.size) stopCluster(cl)
+  
   counts = lapply(res,'[[','counts')
   posteriors = lapply(res,'[[','posteriors')
   binmatches = lapply(res,'[[','binmatches')
