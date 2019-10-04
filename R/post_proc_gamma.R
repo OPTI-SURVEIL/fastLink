@@ -132,12 +132,14 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
     exports = unique(c(depsm$depends$calls[sapply(depsm$depends$pkgs,function(x) '.GlobalEnv' %in% x)]))
     pkgs = unique(c(unlist(depsm$depends$pkgs)))#,unlist(depst$depends$pkgs)))
     pkgs = pkgs[!(pkgs %in% c('base','.GlobalEnv'))]
-    
+    n.thread = 1
+
   }else{
     '%oper%' <- foreach::'%do%'
     chunkseq = list(1:nrow(ind))
     pkgs = NULL; exports = NULL
     opts = list()
+    n.thread = n.cores
   }
 
   
@@ -189,7 +191,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
       keys2 = dfB[[keyvar]][matches[[2]]]
       truths = keys1 == keys2
     }
-    scores = do.call(method, c(list(tlist1, tlist2), method.args,nthread = 1))
+    scores = do.call(method, c(list(tlist1, tlist2), method.args,nthread = n.thread))
     scores = fit.isored(isoreg,scores)
     
     for(z in unique(priors)){
