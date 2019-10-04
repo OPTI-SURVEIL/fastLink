@@ -141,7 +141,12 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
     opts = list()
     n.thread = n.cores
   }
-
+  if(class(method.args$model) == 'xgb.Booster'){
+    method.args$model = xgb.Booster.complete(method.args$model)
+    if(sum(counts_old)>unblocked.size) {xgb.parameters(method.args$model) <- list(nthread = 1)}else{
+      xgb.parameters(method.args$model) <- list(nthread = n.cores)
+    }
+  }
   
   uvals1 = unique(dfA[[varname]])
   uvals2 = unique(dfB[[varname]])

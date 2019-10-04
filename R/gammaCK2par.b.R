@@ -93,6 +93,10 @@ gammaCK2par.b <- function(matAp, matBp, blocklist, n.cores = NULL, cut.a = 0.92,
       names(u.trans.2) = u.values.2; u.trans.2 = list2env(u.trans.2)
     } 
   }
+  if(class(method.args$model) == 'xgb.Booster'){
+    method.args$model = xgb.Booster.complete(method.args$model)
+    xgb.parameters(method.args$model) <- list(nthread = 1)
+  }
   
   clusterExport(cl1, c('matrix.1','matrix.2','blocklist','dedupe.blocks','cut.a','u.trans.1','u.trans.2','method','method.args'),
                 envir = environment())
@@ -202,9 +206,10 @@ gammaCK2par.b <- function(matAp, matBp, blocklist, n.cores = NULL, cut.a = 0.92,
   out = vector('list',length(blocklist))
   #perform comparisons on all small blocks
   
+  
   if(sum(inpar)>0){
     cat('\nparallelizing over small blocks\n', sep = '')
-  
+    
     out[inpar] = foreach(i = 1:sum(inpar), 
                          .options.snow = opts1,.packages = c('Matrix','fastLink','RcppAlgos',pkgs)) %dopar% {
       b = blocklist[inpar][[i]]

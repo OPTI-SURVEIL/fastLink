@@ -210,7 +210,12 @@ gammaCKpar <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, cut.p = 0.88,
         indexes.1[, 2] <- indexes.1[, 2] + slice.1
         list(indexes.2, indexes.1)
       }
-      
+      if(class(method.args$model) == 'xgb.Booster'){
+        method.args$model = xgb.Booster.complete(method.args$model)
+        if(n.cores2 > 1) {xgb.parameters(method.args$model) <- list(nthread = 1)}else{
+          xgb.parameters(method.args$model) <- list(nthread = n.cores)
+        }
+      }
       if (n.cores2 == 1) '%oper%' <- foreach::'%do%'
       else { 
         '%oper%' <- foreach::'%dopar%'

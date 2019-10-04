@@ -39,6 +39,7 @@
 
 gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, transform = NULL,
                         transform.args = NULL,method = "jw", method.args = NULL, w = .10) {
+    
     varnm = names(matAp)
     if(any(class(matAp) %in% c("tbl_df", "data.table",'data.frame'))){
         matAp <- as.data.frame(matAp)[,1]
@@ -109,6 +110,13 @@ gammaCK2par <- function(matAp, matBp, n.cores = NULL, cut.a = 0.92, dedupe = F, 
       temp.1 <- temp.2 <- list()
       
       n.cores2 <- min(n.cores, n.slices*(n.slices + 1)/2)
+      if(class(method.args$model) == 'xgb.Booster'){
+        method.args$model = xgb.Booster.complete(method.args$model)
+        if(n.cores2 > 1) {xgb.parameters(method.args$model) <- list(nthread = 1)}else{
+          xgb.parameters(method.args$model) <- list(nthread = n.cores)
+        }
+      }
+      
       temp = list()
       
       for(i in 1:n.slices) {
