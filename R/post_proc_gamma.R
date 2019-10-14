@@ -165,6 +165,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
   #                     'isoreg',exports),envir = environment())
 
   res = foreach(i = chunkseq, .packages = unique(c('Matrix',pkgs)), .options.snow = opts, .export = exports) %oper% {
+    gc()
     newzeta = seq(0,1,resolution)
     posteriors = newzeta[1:(1/resolution)] + resolution/2
     binmatches = lapply(posteriors,function(x)list())
@@ -240,7 +241,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
         binmatches[[b]] = bmatches
       }
     }
-    #gc()
+    
     res = list(posteriors = posteriors, counts = counts, binmatches = binmatches)
     if(!is.null(keyvar)) res$true.counts = true.counts
     #ret = counts > 0
