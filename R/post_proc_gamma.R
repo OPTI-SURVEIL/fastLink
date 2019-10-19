@@ -32,9 +32,9 @@
 #'
 #' @export
 
-post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, isoreg, method, method.args,
+post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, isoreg, ecdf, method, method.args,
                            transform = NULL, transform.args = NULL, n.cores = NULL, chunksize = 300^2, resolution = 1e-2, unblocked.size = 2e6,
-                           min.posterior = 0.5, drop.lowest = T, keyvar = NULL, cluster = NULL){
+                           min.posterior = 0.1, drop.lowest = T, keyvar = NULL, cluster = NULL){
   
   if(!is.null(cluster)){
     parallel::clusterEvalQ(cluster, rm(list = ls()))
@@ -49,9 +49,24 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
   nv = length(fastlinkres$varnames)
   varnames = fastlinkres$varnames
   
-  min.prior = 1/((1 / min.posterior - 1)/((1 / max(isoreg$y) - 1) / ((1-isoreg$p.m)/isoreg$p.m)) + 1)
+  predseq = ecdf$scores
+  isopreds = fit.isored(isoreg,predseq)
+  pos = fastlinkres$zeta.j * fastlinkres$patterns.w[,'counts']
+  p.score.m = ecdf$m
+  recov.pos = pos * 0
   
-  getinds = fastlinkres$zeta.j >= min.prior & fastlinkres$patterns.w[,grep(varname,varnames)] == 0
+  for(i in 1:length(pos)){
+    z = fastlinkres$zeta.j[i]
+    ips = 1 / ((1 / isopreds - 1) / ((1-isoreg$p.m)/isoreg$p.m) * ((1-z)/z) + 1)
+    if(!any(ips >= min.posterior)) next
+    ind = which(ips >= min.posterior)[sum(ips >= min.posterior)]
+    p.s.m = p.score.m[ind]
+    recov.pos[i] = pos[i] * p.s.m
+  }
+  
+  #min.prior = 1/((1 / min.posterior - 1)/((1 / max(isoreg$y) - 1) / ((1-isoreg$p.m)/isoreg$p.m)) + 1)
+  
+  getinds = recov.pos >= 1 & fastlinkres$patterns.w[,grep(varname,varnames)] == 0
   if(sum(getinds, na.rm=T) == 0){
     cat('No agreement patterns meet criteria for post-processing, returning NULL result \n')
     return(NULL)
