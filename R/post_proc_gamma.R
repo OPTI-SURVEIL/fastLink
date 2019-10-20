@@ -71,7 +71,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
     cat('No agreement patterns meet criteria for post-processing, returning NULL result \n')
     return(NULL)
   } 
-  if(is.data.frame(flinkres$patterns.w)) flinkres$patterns.w = as.matrix(flinkres$patterns.w)
+  if(is.data.frame(fastlinkres$patterns.w)) fastlinkres$patterns.w = as.matrix(fastlinkres$patterns.w)
   matchpats = matrix(fastlinkres$patterns.w[which(getinds),1:nv], ncol = nv)
   zeta_old = fastlinkres$zeta.j[which(getinds)]
   counts_old = fastlinkres$patterns.w[which(getinds),nv+1]
