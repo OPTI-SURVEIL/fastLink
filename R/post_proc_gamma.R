@@ -193,7 +193,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
                          ind = matrix(ind[i, ],ncol=2), listid = list.id,
                          identical = identical,
                          dedupe = dedupe,
-                         matchesLink = TRUE, threads = 1)
+                         matchesLink = TRUE, threads = n.thread)
     
     gammas_mat <- lapply(matches, function(x){
       as.matrix(data.frame(x[[1]], x[[2]]))
