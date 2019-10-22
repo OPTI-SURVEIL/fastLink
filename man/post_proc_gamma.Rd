@@ -38,12 +38,20 @@ depending on the number of record pairs evaluated and the complexity of the fuzz
 
 \item{resolution}{1/Number of probability bins over which to aggregate results. Defaults to 1e-2 (100 bins)}
 
+\item{unblocked.size}{Number of comparisons considered before resorting to parallel operations - can be tweaked to speed up performance in some scenarios}
+
 \item{min.posterior}{Sets a cap to decide which agreement patterns are evaluated for fuzzy matching. Blocks for which the maximum attainable probability 
 of match given the classifier score falls below this threshold are not evaluated. Defaults to 0.5.}
 
 \item{drop.lowest}{Whether to drop matched indices from the lowest probability bin - this can save a lot of memory and processing wasted on nonmatches}
 
 \item{keyvar}{optional variable name used to distinguish true match identity}
+
+\item{cluster}{optionally provide a pre-made cluster object. can help with repeated cluster startup times.}
+
+\item{diceroll.gamma}{if set to TRUE (the default), a gammalist-like object is constructed (binmatches) by sampling inclusion of each record pair 
+according to the posterior probability of name matching, which provides an easy way to re-integrate the results into the fastLink protocol. If set to FALSE, 
+binmatches is returned for ranges of posterior match scores binned according to the \code{resolution} parameter}
 }
 \value{
 \code{post_proc_gamma} returns a list with the binned posterior counts, probabilities, and matching indices at each level but the lowest

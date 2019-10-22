@@ -28,13 +28,16 @@
 #' @param drop.lowest Whether to drop matched indices from the lowest probability bin - this can save a lot of memory and processing wasted on nonmatches
 #' @param keyvar optional variable name used to distinguish true match identity
 #' @param cluster optionally provide a pre-made cluster object. can help with repeated cluster startup times.
+#' @param diceroll.gamma if set to TRUE (the default), a gammalist-like object is constructed (binmatches) by sampling inclusion of each record pair 
+#' according to the posterior probability of name matching, which provides an easy way to re-integrate the results into the fastLink protocol. If set to FALSE, 
+#' binmatches is returned for ranges of posterior match scores binned according to the \code{resolution} parameter
 #' @return \code{post_proc_gamma} returns a list with the binned posterior counts, probabilities, and matching indices at each level but the lowest
 #'
 #' @export
 
 post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, isoreg, ecdf, method, method.args,
                            transform = NULL, transform.args = NULL, n.cores = NULL, chunksize = 300^2, resolution = 1e-2, unblocked.size = 2e6,
-                           min.posterior = 0.1, drop.lowest = T, keyvar = NULL, cluster = NULL){
+                           min.posterior = 0.1, drop.lowest = T, keyvar = NULL, cluster = NULL, diceroll.gamma = T){
   
   if(!is.null(cluster)){
     parallel::clusterEvalQ(cluster, rm(list = ls()))
@@ -220,43 +223,75 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
       scores[inds] = 1 / ((1 / scores[inds]- 1) / ((1-isoreg$p.m)/isoreg$p.m) * ((1-z)/z) + 1)
     }
     bins = .bincode(scores, newzeta, include.lowest = T)
-    for(b in sort(unique(bins))){
-      ms = lapply(matches[1:2], '[', bins==b)
-      if(!is.null(keyvar)) true.counts[b] = sum(truths[bins==b])
-      posteriors[b] = mean(scores[bins==b])
-      counts[b] = length(ms[[1]])
+    if(diceroll.gamma){
+      bin.incl = rbinom(length(scores),1,scores) == 1
+      ms = lapply(matches[1:2], '[', bin.incl)
+      bincl.matches = list()
+      swtch2 = T
+      while(swtch2){
+        ums = lapply(ms, function(x) sort(unique(x)))
+        major = which.min(sapply(ums,length))
+        ord = c(major,3-major)
+        
+        mms = tapply(ms[[3-major]],ms[[major]],function(x) x)
+        temp1 = sparseMatrix(i = ms[[major]], j = ms[[3-major]])
+        temp2 = match(which(rowSums(temp1)/length(ums[[3-major]]) >= 0.5),ums[[major]])
+        if(length(temp2) == 0){swtch2 = F; break}
+        xs = ums[[major]][temp2]; ys = Reduce(intersect,mms[temp2])
+        bincl.matches = c(bincl.matches, list(list(xs,ys)[ord]))
+        dropinds = ms[[major]] %in% xs & ms[[3-major]] %in% ys
+        if(sum(dropinds)==0 | sum(dropinds) == length(ms[[1]])){swtch2 = F; break}
+        ms = lapply(ms,'[',!dropinds)
+      }
+      mmsl = sapply(mms,paste0,collapse = '.')
+      mmsl = as.integer(factor(mmsl,levels = unique(mmsl)))
       
-      if(b>1 | !drop.lowest){
-        swtch2 = T
-        bmatches = list()
-        while(swtch2){
-          ums = lapply(ms, function(x) sort(unique(x)))
-          major = which.min(sapply(ums,length))
-          ord = c(major,3-major)
+      for(l in unique(mmsl)){
+        xs = ums[[major]][mmsl == l]
+        ys = mms[[which(mmsl==l)[1]]]
+        bincl.matches = c(bincl.matches, list(list(xs,ys)[ord]))
+      }
+      
+    }
+    for(b in sort(unique(bins))){
+        ms = lapply(matches[1:2], '[', bins==b)
+        if(!is.null(keyvar)) true.counts[b] = sum(truths[bins==b])
+        posteriors[b] = mean(scores[bins==b])
+        counts[b] = length(ms[[1]])
+        
+      if(!diceroll.gamma){
+        if(b>1 | !drop.lowest){
+          swtch2 = T
+          bmatches = list()
+          while(swtch2){
+            ums = lapply(ms, function(x) sort(unique(x)))
+            major = which.min(sapply(ums,length))
+            ord = c(major,3-major)
+            
+            mms = tapply(ms[[3-major]],ms[[major]],function(x) x)
+            temp1 = sparseMatrix(i = ms[[major]], j = ms[[3-major]])
+            temp2 = match(which(rowSums(temp1)/length(ums[[3-major]]) >= 0.5),ums[[major]])
+            if(length(temp2) == 0){swtch2 = F; break}
+            xs = ums[[major]][temp2]; ys = Reduce(intersect,mms[temp2])
+            bmatches = c(bmatches, list(list(xs,ys)[ord]))
+            dropinds = ms[[major]] %in% xs & ms[[3-major]] %in% ys
+            if(sum(dropinds)==0 | sum(dropinds) == length(ms[[1]])){swtch2 = F; break}
+            ms = lapply(ms,'[',!dropinds)
+          }
           
-          mms = tapply(ms[[3-major]],ms[[major]],function(x) x)
-          temp1 = sparseMatrix(i = ms[[major]], j = ms[[3-major]])
-          temp2 = match(which(rowSums(temp1)/length(ums[[3-major]]) >= 0.5),ums[[major]])
-          if(length(temp2) == 0){swtch2 = F; break}
-          xs = ums[[major]][temp2]; ys = Reduce(intersect,mms[temp2])
-          bmatches = c(bmatches, list(list(xs,ys)[ord]))
-          dropinds = ms[[major]] %in% xs & ms[[3-major]] %in% ys
-          if(sum(dropinds)==0 | sum(dropinds) == length(ms[[1]])){swtch2 = F; break}
-          ms = lapply(ms,'[',!dropinds)
-        }
-        
-        mmsl = sapply(mms,paste0,collapse = '.')
-        mmsl = as.integer(factor(mmsl,levels = unique(mmsl)))
-        
-        for(l in unique(mmsl)){
-          xs = ums[[major]][mmsl == l]
-          ys = mms[[which(mmsl==l)[1]]]
-          bmatches = c(bmatches, list(list(xs,ys)[ord]))
-        }
-        binmatches[[b]] = bmatches
+          mmsl = sapply(mms,paste0,collapse = '.')
+          mmsl = as.integer(factor(mmsl,levels = unique(mmsl)))
+          
+          for(l in unique(mmsl)){
+            xs = ums[[major]][mmsl == l]
+            ys = mms[[which(mmsl==l)[1]]]
+            bmatches = c(bmatches, list(list(xs,ys)[ord]))
+          }
+          binmatches[[b]] = bmatches
+      }
       }
     }
-    
+    if(diceroll.gamma) binmatches = bincl.matches
     res = list(posteriors = posteriors, counts = counts, binmatches = binmatches)
     if(!is.null(keyvar)) res$true.counts = true.counts
     #ret = counts > 0
@@ -272,7 +307,12 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
   
   posteriors = rowSums(do.call(cbind,posteriors) * do.call(cbind,counts)) / rowSums(do.call(cbind,counts))
   counts = Reduce('+', counts)
-  binmatches = lapply(seq_along(binmatches[[1]]), function(i) do.call(c,lapply(binmatches,'[[',i)))
+  if(diceroll.gamma){
+    binmatches = do.call(c,binmatches)
+  }else{
+    binmatches = lapply(seq_along(binmatches[[1]]), function(i) do.call(c,lapply(binmatches,'[[',i)))
+  }
+  
   names(binmatches) = paste0('matches',seq(0,1-resolution,resolution) + resolution/2)
   if(!is.null(keyvar)) true.pmatch = Reduce('+',true.counts) / counts  
   
