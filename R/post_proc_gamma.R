@@ -75,6 +75,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
   } 
   if(is.data.frame(fastlinkres$patterns.w)) fastlinkres$patterns.w = as.matrix(fastlinkres$patterns.w)
   matchpats = matrix(fastlinkres$patterns.w[which(getinds),1:nv], ncol = nv)
+  colnames(matchpats) = colnames(fastlinkres$patterns.w)[1:nv]
   counts_old = fastlinkres$patterns.w[which(getinds),nv+1]
   
   matchkeys = do.call(paste,as.data.frame(matchpats))
