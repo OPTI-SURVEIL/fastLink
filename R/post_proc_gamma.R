@@ -311,9 +311,10 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
     binmatches = do.call(c,binmatches)
   }else{
     binmatches = lapply(seq_along(binmatches[[1]]), function(i) do.call(c,lapply(binmatches,'[[',i)))
+    names(binmatches) = paste0('matches',seq(0,1-resolution,resolution) + resolution/2)
   }
   
-  names(binmatches) = paste0('matches',seq(0,1-resolution,resolution) + resolution/2)
+  
   if(!is.null(keyvar)) true.pmatch = Reduce('+',true.counts) / counts  
   
   incl = !is.na(posteriors)
