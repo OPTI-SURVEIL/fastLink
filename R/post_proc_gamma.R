@@ -101,7 +101,7 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
     
     pos = predict(fastlinkres$match_mod,newdata = data.frame(newdat.m),type = 'response')
     neg = predict(fastlinkres$nonmatch_mod,newdata = data.frame(newdat.u),type = 'response')
-    zeta_high[j] = pos/(pos + neg)
+    zeta_high[ind] = pos/(pos + neg)
   }
   
   dummyEM = fastlinkres
