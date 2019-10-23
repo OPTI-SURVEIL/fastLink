@@ -24,7 +24,7 @@
 #' @param resolution 1/Number of probability bins over which to aggregate results. Defaults to 1e-2 (100 bins)
 #' @param unblocked.size Number of comparisons considered before resorting to parallel operations - can be tweaked to speed up performance in some scenarios
 #' @param min.posterior Sets a cap to decide which agreement patterns are evaluated for fuzzy matching. Blocks for which the maximum attainable probability 
-#' of match given the classifier score falls below this threshold are not evaluated. Defaults to 0.5.
+#' of match given the classifier score falls below this threshold are not evaluated. Defaults to 0.5. If set to 0, all blocks are evaluated.
 #' @param drop.lowest Whether to drop matched indices from the lowest probability bin - this can save a lot of memory and processing wasted on nonmatches
 #' @param keyvar optional variable name used to distinguish true match identity
 #' @param cluster optionally provide a pre-made cluster object. can help with repeated cluster startup times.
@@ -37,14 +37,13 @@
 
 post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, isoreg, ecdf, method, method.args,
                            transform = NULL, transform.args = NULL, n.cores = NULL, chunksize = 300^2, resolution = 1e-2, unblocked.size = 2e6,
-                           min.posterior = 0.1, drop.lowest = T, keyvar = NULL, cluster = NULL, diceroll.gamma = T){
+                           min.posterior = 0.1, drop.lowest = T, keyvar = NULL, cluster = NULL, diceroll.gamma = F){
   
   if(!is.null(cluster)){
     parallel::clusterEvalQ(cluster, rm(list = ls()))
     parallel::clusterEvalQ(cluster, gc())
   }
-    
-    
+  
   dedupe = identical(dfA,dfB)
   if(is.null(n.cores)) n.cores = parallel::detectCores() - 1
   
@@ -69,18 +68,40 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
   
   #min.prior = 1/((1 / min.posterior - 1)/((1 / max(isoreg$y) - 1) / ((1-isoreg$p.m)/isoreg$p.m)) + 1)
   
-  getinds = recov.pos >= 1 & fastlinkres$patterns.w[,grep(varname,varnames)] == 0
+  getinds = (recov.pos >= 1 | min.posterior==0) & fastlinkres$patterns.w[,grep(varname,varnames)] == 0
   if(sum(getinds, na.rm=T) == 0){
     cat('No agreement patterns meet criteria for post-processing, returning NULL result \n')
     return(NULL)
   } 
   if(is.data.frame(fastlinkres$patterns.w)) fastlinkres$patterns.w = as.matrix(fastlinkres$patterns.w)
   matchpats = matrix(fastlinkres$patterns.w[which(getinds),1:nv], ncol = nv)
-  zeta_old = fastlinkres$zeta.j[which(getinds)]
   counts_old = fastlinkres$patterns.w[which(getinds),nv+1]
   
-  matchkeys = do.call(paste0,as.data.frame(matchpats))
-  targkeys = do.call(paste0,as.data.frame(fastlinkres$patterns.w[,1:nv]))
+  matchkeys = do.call(paste,as.data.frame(matchpats))
+  targkeys = do.call(paste,as.data.frame(fastlinkres$patterns.w[,1:nv]))
+  
+  interpats = matchpats; interpats[,grep(varname,varnames)] = 2
+  interkeys = do.call(paste,data.frame(interpats))
+  
+  zeta_old = fastlinkres$zeta.j[which(getinds)]
+  zeta_high = fastlinkres$zeta.j[match(interkeys,targkeys,nomatch = length(fastlinkres$zeta.j)+100)]
+  levs = lapply(lapply(data.frame(fastlinkres$patterns.w[,1:nv]),factor),levels)
+  for(ind in which(is.na(zeta_high))){
+    newdat = data.frame(interpats)[ind,]
+    newdat[is.na(newdat)] = -1
+    newdat[] = lapply(1:ncol(newdat),function(i) factor(newdat[,i],levels = levs[[i]]))
+    terms.m = names(coef(fastlinkres$match_mod))[-1]
+    terms.m = gsub('2$|1$|0$','',terms.m); terms.m = gsub('2\\.|1\\.|0\\.',':',terms.m)
+    newdat.m = model.matrix(as.formula(paste('~',paste(terms.m,collapse ='+'))), newdat)
+    
+    terms.u = names(coef(fastlinkres$nonmatch_mod))[-1]
+    terms.u = gsub('2$|1$|0$','',terms.u); terms.u = gsub('2\\.|1\\.|0\\.',':',terms.u)
+    newdat.u = model.matrix(as.formula(paste('~',paste(terms.u,collapse ='+'))), newdat)
+    
+    pos = predict(fastlinkres$match_mod,newdata = data.frame(newdat.m),type = 'response')
+    neg = predict(fastlinkres$nonmatch_mod,newdata = data.frame(newdat.u),type = 'response')
+    zeta_high[j] = pos/(pos + neg)
+  }
   
   dummyEM = fastlinkres
   dummyEM$zeta.j[!(targkeys %in% matchkeys)] = -1
@@ -204,9 +225,10 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
     
     matches <- as.data.frame(do.call('rbind', gammas_mat) + 1)
     
-    pats = do.call(paste0,lapply(varnames, function(v) (dfA[[v]][matches[[1]]] == dfB[[v]][matches[[2]]]) * 2))
+    pats = do.call(paste,lapply(varnames, function(v) (dfA[[v]][matches[[1]]] == dfB[[v]][matches[[2]]]) * 2))
     
     priors = fastlinkres$zeta.j[match(pats,targkeys)]
+    uppers = zeta_high[match(pats,matchkeys)]
     tlist1 = lapply(utrans1,'[', match(dfA[[varname]][matches[[1]]], uvals1))
     tlist2 = lapply(utrans2,'[', match(dfB[[varname]][matches[[2]]], uvals2))
     
@@ -217,41 +239,41 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
     }
     scores = do.call(method, c(list(tlist1, tlist2), method.args,nthread = n.thread))
     scores = fit.isored(isoreg,scores)
+    scores = uppers / ((1 / scores- 1) / ((1-isoreg$p.m)/isoreg$p.m) * ((1-priors)/priors) + 1)
     
-    for(z in unique(priors)){
-      inds = priors==z
-      scores[inds] = 1 / ((1 / scores[inds]- 1) / ((1-isoreg$p.m)/isoreg$p.m) * ((1-z)/z) + 1)
-    }
     bins = .bincode(scores, newzeta, include.lowest = T)
     if(diceroll.gamma){
       bin.incl = rbinom(length(scores),1,scores) == 1
-      ms = lapply(matches[1:2], '[', bin.incl)
       bincl.matches = list()
-      swtch2 = T
-      while(swtch2){
-        ums = lapply(ms, function(x) sort(unique(x)))
-        major = which.min(sapply(ums,length))
-        ord = c(major,3-major)
+      if(sum(bin.incl > 0)){
         
-        mms = tapply(ms[[3-major]],ms[[major]],function(x) x)
-        temp1 = sparseMatrix(i = ms[[major]], j = ms[[3-major]])
-        temp2 = match(which(rowSums(temp1)/length(ums[[3-major]]) >= 0.5),ums[[major]])
-        if(length(temp2) == 0){swtch2 = F; break}
-        xs = ums[[major]][temp2]; ys = Reduce(intersect,mms[temp2])
-        bincl.matches = c(bincl.matches, list(list(xs,ys)[ord]))
-        dropinds = ms[[major]] %in% xs & ms[[3-major]] %in% ys
-        if(sum(dropinds)==0 | sum(dropinds) == length(ms[[1]])){swtch2 = F; break}
-        ms = lapply(ms,'[',!dropinds)
+        ms = lapply(matches[1:2], '[', bin.incl)
+        
+        swtch2 = T
+        while(swtch2){
+          ums = lapply(ms, function(x) sort(unique(x)))
+          major = which.min(sapply(ums,length))
+          ord = c(major,3-major)
+          
+          mms = tapply(ms[[3-major]],ms[[major]],function(x) x)
+          temp1 = sparseMatrix(i = ms[[major]], j = ms[[3-major]])
+          temp2 = match(which(rowSums(temp1)/length(ums[[3-major]]) >= 0.5),ums[[major]])
+          if(length(temp2) == 0){swtch2 = F; break}
+          xs = ums[[major]][temp2]; ys = Reduce(intersect,mms[temp2])
+          bincl.matches = c(bincl.matches, list(list(xs,ys)[ord]))
+          dropinds = ms[[major]] %in% xs & ms[[3-major]] %in% ys
+          if(sum(dropinds)==0 | sum(dropinds) == length(ms[[1]])){swtch2 = F; break}
+          ms = lapply(ms,'[',!dropinds)
+        }
+        mmsl = sapply(mms,paste0,collapse = '.')
+        mmsl = as.integer(factor(mmsl,levels = unique(mmsl)))
+        
+        for(l in unique(mmsl)){
+          xs = ums[[major]][mmsl == l]
+          ys = mms[[which(mmsl==l)[1]]]
+          bincl.matches = c(bincl.matches, list(list(xs,ys)[ord]))
+        }
       }
-      mmsl = sapply(mms,paste0,collapse = '.')
-      mmsl = as.integer(factor(mmsl,levels = unique(mmsl)))
-      
-      for(l in unique(mmsl)){
-        xs = ums[[major]][mmsl == l]
-        ys = mms[[which(mmsl==l)[1]]]
-        bincl.matches = c(bincl.matches, list(list(xs,ys)[ord]))
-      }
-      
     }
     for(b in sort(unique(bins))){
         ms = lapply(matches[1:2], '[', bins==b)
@@ -322,151 +344,3 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
   if(!is.null(keyvar)) res$true.pmatch = true.pmatch[incl]
   res
 }
-
-# old version using blocking for large indices
-# post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, isoreg, method, method.args,
-#                            transform = NULL, transform.args = NULL, n.cores = NULL, unblocked.size = 2e6, resolution = 1e-2,
-#                            min.posterior = 0.5, drop.lowest = T){
-#   
-#   dedupe = identical(dfA,dfB)
-#   if(is.null(n.cores)) n.cores = parallel::detectCores() - 1
-#   
-#   glist = gammalist[intersect(names(gammalist), fastlinkres$varnames)]
-#   nv = length(fastlinkres$varnames)
-#   varnames = fastlinkres$varnames
-#   
-#   min.prior = 1/((1 / min.posterior - 1)/((1 / max(isoreg$y) - 1) / ((1-isoreg$p.m)/isoreg$p.m)) + 1)
-#   
-#   getinds = fastlinkres$zeta.j >= min.prior & fastlinkres$patterns.w[,grep(varname,varnames)] == 0
-#   if(sum(getinds, na.rm=T) == 0){
-#     cat('No agreement patterns meet criteria for post-processing, returning original gammalist \n')
-#     return(glist)
-#   } 
-#   
-#   matchpats = matrix(fastlinkres$patterns.w[which(getinds),1:nv], ncol = nv)
-#   counts_old = fastlinkres$patterns.w[which(getinds),nv+1]
-#   zeta_old = fastlinkres$zeta.j[which(getinds)]
-#   
-#   ord = order(counts_old)
-#   matchpats = matchpats[ord,]; counts_old = counts_old[ord]; zeta_old = zeta_old[ord]
-#   
-#   matchkeys = do.call(paste0,as.data.frame(matchpats))
-#   targkeys = do.call(paste0,as.data.frame(fastlinkres$patterns.w[,1:nv]))
-#   
-#   np = which.min(abs(cumsum(counts_old)-unblocked.size))
-#   smallpats = matrix(matchpats[1:np,], ncol = nv)
-#   
-#   dummyEM = fastlinkres
-#   dummyEM$zeta.j[!(targkeys %in% matchkeys[1:np])] = -1
-#   dummyEM$patterns.w[!(targkeys %in% matchkeys[1:np]),'weights'] = -1e24
-#   
-#   matches = do.call(cbind,matchesLink(gammalist,fastlinkres$nobs.a, fastlinkres$nobs.b,dummyEM,0,dedupe = dedupe))
-#   
-#   pats = do.call(paste0,lapply(varnames, function(v) (dfA[[v]][matches[,1]] == dfB[[v]][matches[,2]]) * 2))
-#   priors = fastlinkres$zeta.j[match(pats,targkeys)]
-#   
-#   uvals1 = unique(dfA[[varname]][matches[,1]])
-#   uvals2 = unique(dfB[[varname]][matches[,2]])
-#   
-#   if(!is.null(transform)){
-#     utrans1 = do.call(transform,c(list(uvals1), transform.args))
-#     utrans2 = do.call(transform,c(list(uvals2), transform.args))
-#   }else{
-#     utrans1 = uvals1
-#     utrans2 = uvals2
-#   }
-#   
-#   tlist1 = lapply(utrans1,'[', match(dfA[[varname]][matches[,1]], uvals1))
-#   tlist2 = lapply(utrans2,'[', match(dfB[[varname]][matches[,2]], uvals2))
-#   
-#   #may need to come up with a better solution to this
-#   method.args$combo = F
-#   
-#   scores = do.call(method, c(list(tlist1, tlist2), method.args,nthread = n.cores))
-#   
-#   for(z in unique(priors)){
-#     scores[priors == z] = fit.isored(isoreg_scale(wbe_isofill_noem, z), scores[priors==z])
-#   }
-#   
-#   newzeta = seq(0,1,resolution)
-#   
-#   bins = .bincode(scores, newzeta, include.lowest = T)
-#   
-#   for(b in sort(unique(bins))){
-#     ms = matrix(matches[bins == b,],ncol = 2)
-#     ums = sort(unique(ms[,1]))
-#     breaks = tapply(ms[,2],ms[,1],function(x) x)
-#     if(b==1 & drop.lowest){
-#       glist[[varname]][[paste0('matches',newzeta[b]+resolution/2)]] = numeric(0)
-#     }else{
-#       glist[[varname]][[paste0('matches',newzeta[b]+resolution/2)]] = lapply(seq_along(ums),function(i)
-#         list(ums[i],breaks[[i]]))
-#     }
-#     
-#     glist[[varname]][[paste0('count',newzeta[b]+1e-2/2)]] = nrow(ms)
-#     glist[[varname]][[paste0('meanprob',newzeta[b]+1e-2/2)]] = mean(scores[bins==b])
-#     
-#   }
-#   
-#   if(np < nrow(matchpats)){
-#     #may need to come up with a better solution to this
-#     method.args$combo = T
-#     
-#     largepats = matrix(matchpats[(np+1):nrow(matchpats),],ncol = nv)
-#     blocklist = list()
-#     priors = vector()
-#     
-#     nonmatch_vars = apply(largepats,2,function(x) 0 %in% x)
-#     NA_vars = apply(largepats,2,function(x) any(is.na(x)))
-#     NAblocks = lapply(glist[NA_vars], function(x) list(matches2 = list(list(dfA.inds = x$nas[[1]], dfB.inds = 1:nrow(dfB)),
-#                                                                        list(dfA.inds = setdiff(1:nrow(dfA),x$nas[[1]]), 
-#                                                                             dfB.inds = x$nas[[2]]))))
-#     #need to add in handling of NAs as well
-#     
-#     unblocks = lapply(fastlinkres$varnames[nonmatch_vars],
-#                       function(v) fastLink:::combineBlocks(gammalist[v],c(nrow(dfA),nrow(dfB))))
-#     names(unblocks) = fastlinkres$varnames[nonmatch_vars]
-#     unblocks_ = lapply(unblocks, function(x) lapply(1:ncol(x[[1]]), function(j) list(dfA.inds = which(x[[1]][,j]),
-#                                                                                      dfB.inds = which(x[[2]][,j]))))
-#     for(i in 1:nrow(largepats)){
-#       p = largepats[i,]
-#       # may be problems here if 0 or 2 are not in the pattern
-#       
-#       blocks = fastLink:::combineBlocks(c(glist[which(p==2)],NAblocks[varnames[is.na(p)]]),c(nrow(dfA),nrow(dfB)))
-#       blocks = lapply(1:ncol(blocks[[1]]), function(j) list(dfA.inds = which(blocks[[1]][,j]),
-#                                                             dfB.inds = which(blocks[[2]][,j])))
-#       
-#       blocks = fastLink:::thin_blocks(blocks, do.call(c,unblocks_[varnames[which(p==0)]]), dims = c(nrow(dfA),nrow(dfB)),
-#                                       dedupe = dedupe)
-#       
-#       blocklist = c(blocklist, blocks)
-#       priors = c(priors, rep(zeta_old[np + i], length(blocks)))
-#       print(i/nrow(largepats))
-#     }
-#     if(dedupe){
-#       dedupe.blocks = sapply(blocklist,function(x) identical (x[[1]],x[[2]]))
-#     }else{
-#       dedupe.blocks = rep(F, length(blocklist))
-#     }
-#     glist2 = fastLink::CKpar.b(dfA[varname],dfB[varname],blocklist,priors = priors,drop.lowest = drop.lowest,
-#                                dedupe.blocks = dedupe.blocks,isoreg = isoreg,
-#                                method = method, method.args = method.args,
-#                                transform = transform, transform.args = transform.args)
-#     
-#     common = intersect(names(glist2), names(glist[varname]))
-#     countvars = grep('count',common,val=T)
-#     meanvars = grep('mean',common,val=T)
-#     indvars = grep('match',common,val=T)
-#     
-#     glist2[meanvars] = as.list((unlist(glist2[meanvars]) * unlist(glist2[countvars]) + 
-#                                   unlist(glist[varname][meanvars]) * unlist(glist[varname][countvars]))/ 
-#                                  (unlist(glist[varname][countvars]) + unlist(glist2[countvars])))
-#     
-#     glist2[countvars] = as.list((unlist(glist[varname][countvars]) + unlist(glist2[countvars])))
-#     
-#     glist2[indvars] = lapply(indvars, function(v) c(glist2[[v]],glist[varname][[v]]))
-#     glist[varname][common] = NULL
-#     glist[varname] = c(glist[varname], glist2)
-#   }
-#   glist
-# }
