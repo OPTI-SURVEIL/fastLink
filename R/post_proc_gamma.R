@@ -292,12 +292,12 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
             
             mms = tapply(ms[[3-major]],ms[[major]],function(x) x)
             temp1 = sparseMatrix(i = ms[[major]], j = ms[[3-major]])
-            temp2 = match(which(rowSums(temp1)/length(ums[[3-major]]) >= 0.5),ums[[major]])
+            temp2 = match(which(rowSums(temp1)/length(ums[[3-major]]) >= 0.5),ums[[major]])[1]
             if(length(temp2) == 0){swtch2 = F; break}
             xs = ums[[major]][temp2]; ys = Reduce(intersect,mms[temp2])
-            bmatches = c(bmatches, list(list(xs,ys)[ord]))
             dropinds = ms[[major]] %in% xs & ms[[3-major]] %in% ys
             if(sum(dropinds)==0 | sum(dropinds) == length(ms[[1]])){swtch2 = F; break}
+            bmatches = c(bmatches, list(list(xs,ys)[ord]))
             ms = lapply(ms,'[',!dropinds)
           }
           
