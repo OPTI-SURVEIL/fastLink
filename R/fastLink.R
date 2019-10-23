@@ -252,7 +252,9 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
         }
     }
     if(!is.null(gammalist.obj)){
-      gammas = unlist(grepl('gamma',lapply(gammalist.obj,lapply, class)))
+      if(blocked){ gammas = unlist(grepl('gamma',lapply(gammalist.obj,lapply, class)))}else{
+        gammas = unlist(grepl('gamma',lapply(gammalist.obj, class)))
+      }
       if(!all(gammas))
         stop('If providing a gammalist object, each list entry must have been generated from one of fastLink\'s gamma variable matching functions.')
     }
