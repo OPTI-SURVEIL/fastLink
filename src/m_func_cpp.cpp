@@ -126,10 +126,10 @@ std::vector<arma::vec> indexing_na(const std::vector<arma::vec> s,
   arma::uvec s1_l3 = s1 > l3;
   arma::uvec s1_l4 = s1 <= l4;
   
-  if(dedupe && (l1 == l3) && (l2 == l4)){
-    arma::uvec s0_l2 = s0 <= (l2-1);
-    arma::uvec s1_l3 = s1 > (l3+1);
-  }
+  // if(dedupe && (l1 == l3) && (l2 == l4)){
+  //   arma::uvec s0_l2 = s0 <= (l2-1);
+  //   arma::uvec s1_l3 = s1 > (l3+1);
+  // }
   
   arma::uvec s0_bool = s0_l1 % s0_l2;
   arma::uvec s1_bool = s1_l3 % s1_l4;
@@ -260,7 +260,7 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
         }
       }
       
-      bool same_vec = approx_equal(nobs_a_vec[-nobs_a], nas_a, "absdiff", 0.002);
+      bool same_vec = approx_equal(nobs_a_vec, nas_a, "absdiff", 0.002);
       
       if(!same_vec){
         arma::uvec temp;
