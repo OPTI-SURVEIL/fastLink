@@ -266,8 +266,8 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
         arma::uvec temp;
         nobs_a_notnull_inb = getNotIn(nobs_a_vec, nas_a); 
         for(j = 0; j < nas_b.size(); j++){
-          temp = nobs_a_notnull_inb < (j+1);
-          arma::vec noannib = nobs_a_notnull_inb.elem(find(temp == true))
+          temp = nobs_a_notnull_inb < nas_b[j];
+          arma::vec noannib = nobs_a_notnull_inb.elem(find(temp == true));
           
           for(unsigned k = 0; k < noannib.size(); k++){
             tripletList.push_back(Trip(noannib[k]-1, nas_b[j]-1, val));
