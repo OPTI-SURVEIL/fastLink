@@ -119,13 +119,15 @@ std::vector<arma::vec> indexing_na(const std::vector<arma::vec> s,
 
   // Unpack
   const arma::vec s0 = s[0]; const arma::vec s1 = s[1];
-
+  
   // Subset
   arma::uvec s0_l1 = s0 > l1;
   arma::uvec s0_l2 = s0 <= l2;
   
   if(dedupe){
     s0_l2 = s0 <= std::min(l2,l4-1);
+    //eliminates last entrant in cases where we are on the square diagonal of 
+    //a deduplication
   }
   
   arma::uvec s1_l3 = s1 > l3;
@@ -138,7 +140,7 @@ std::vector<arma::vec> indexing_na(const std::vector<arma::vec> s,
   // Output
   std::vector<arma::vec> out(2);
   out[0] = temp0;
-  if(!dedupe)
+  if(!dedupe || (l1 != l3))
     out[1] = temp1;
   return out;
   
@@ -250,7 +252,7 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
     
     // Create triplet
     std::vector<Trip> tripletList;
-    if(dedupe){
+    if(dedupe && (lowerlims(0) != lowerlims(1))){
       
       tripletList.reserve(nas_a.size() * nobs_b + nas_a.size() * nobs_a);
       
