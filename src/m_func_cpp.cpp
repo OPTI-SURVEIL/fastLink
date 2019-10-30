@@ -123,15 +123,14 @@ std::vector<arma::vec> indexing_na(const std::vector<arma::vec> s,
   // Subset
   arma::uvec s0_l1 = s0 > l1;
   arma::uvec s0_l2 = s0 <= l2;
-  
-  if(dedupe){
-    s0_l2 = s0 <= std::min(l2,l4-1);
-    //eliminates last entrant in cases where we are on the square diagonal of 
-    //a deduplication
-  }
-  
   arma::uvec s1_l3 = s1 > l3;
   arma::uvec s1_l4 = s1 <= l4;
+  
+  if(dedupe && (l1 == l3) && (l2 == l4)){
+    arma::uvec s0_l2 = s0 <= (l2-1);
+    arma::uvec s1_l3 = s1 > (l3+1);
+  }
+  
   arma::uvec s0_bool = s0_l1 % s0_l2;
   arma::uvec s1_bool = s1_l3 % s1_l4;
   arma::vec temp0 = s0.elem(find(s0_bool == true)) - l1; //converted to index within submatrix
@@ -140,8 +139,7 @@ std::vector<arma::vec> indexing_na(const std::vector<arma::vec> s,
   // Output
   std::vector<arma::vec> out(2);
   out[0] = temp0;
-  if(!dedupe || (l1 != l3))
-    out[1] = temp1;
+  out[1] = temp1;
   return out;
   
 }
@@ -249,21 +247,35 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
     // Extract indices of NAs
     nas_extract = nas[i];
     nas_a = nas_extract[0];
-    
+    nas_b = nas_extract[1];
     // Create triplet
     std::vector<Trip> tripletList;
+    tripletList.reserve(nas_a.size() * nobs_b + nas_b.size() * nobs_a);
+    
     if(dedupe && (lowerlims(0) != lowerlims(1))){
       
-      tripletList.reserve(nas_a.size() * nobs_b + nas_a.size() * nobs_a);
-      
       for(j = 0; j < nas_a.size(); j++){
-        for(int k = std::max(0.0,nas_a[j] + lowerlims(0) - lowerlims(1)); k < nobs_b; k++){
+        for(int k = std::max(0.0,nas_a[j]); k < nobs_b; k++){
           tripletList.push_back(Trip(nas_a[j]-1, k, val));
         }
       }
-    }else{
-      nas_b = nas_extract[1];
       
+      bool same_vec = approx_equal(nobs_a_vec[-nobs_a], nas_a, "absdiff", 0.002);
+      
+      if(!same_vec){
+        arma::uvec temp;
+        nobs_a_notnull_inb = getNotIn(nobs_a_vec, nas_a); 
+        for(j = 0; j < nas_b.size(); j++){
+          temp = nobs_a_notnull_inb < (j+1);
+          arma::vec noannib = nobs_a_notnull_inb.elem(find(temp == true))
+          
+          for(unsigned k = 0; k < noannib.size(); k++){
+            tripletList.push_back(Trip(noannib[k]-1, nas_b[j]-1, val));
+          }
+        }
+      }
+      
+    }else{
       // Create triplet
       tripletList.reserve(nas_a.size() * nobs_b + nas_b.size() * nobs_a);
       for(j = 0; j < nas_a.size(); j++){
@@ -282,8 +294,8 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
           }
         }
       }
-      
     }
+    
     // Convert to sparse matrix
     SpMat sp(dims(0), dims(1));
     sp.setFromTriplets(tripletList.begin(), tripletList.end());
