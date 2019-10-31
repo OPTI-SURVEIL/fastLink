@@ -252,7 +252,7 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
     std::vector<Trip> tripletList;
     tripletList.reserve(nas_a.size() * nobs_b + nas_b.size() * nobs_a);
     
-    if(dedupe && (lowerlims(0) == lowerlims(1))){
+    if(dedupe && (lowerlims[i](0) == lowerlims[i](1))){
       
       for(j = 0; j < nas_a.size(); j++){
         for(int k = std::max(0.0,nas_a[j]); k < nobs_b; k++){
