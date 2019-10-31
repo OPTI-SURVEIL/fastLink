@@ -253,7 +253,7 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
     tripletList.reserve(nas_a.size() * nobs_b + nas_b.size() * nobs_a);
     
     if(dedupe && (lowerlims(0) == lowerlims(1))){
-      Rcout << "going into diagonal subroutine" << std::endl;
+      //Rcout << "going into diagonal subroutine" << std::endl;
       for(j = 0; j < nas_a.size(); j++){
         for(int k = std::max(0.0,nas_a[j]); k < nobs_b; k++){
           tripletList.push_back(Trip(nas_a[j]-1, k, val));
@@ -277,7 +277,7 @@ std::vector<SpMat> create_sparse_na(const std::vector< std::vector<arma::vec> > 
       
     }else{
       // Create triplet
-      Rcout << "going into nondiagonal subroutine" << std::endl;
+      //Rcout << "going into nondiagonal subroutine" << std::endl;
       tripletList.reserve(nas_a.size() * nobs_b + nas_b.size() * nobs_a);
       for(j = 0; j < nas_a.size(); j++){
         for(int k = 0; k < nobs_b; k++){
