@@ -471,7 +471,7 @@ std::vector< std::vector<arma::vec> > m_func_par(const std::vector< std::vector<
           for(k = 0; k < ptemp_feature.size(); k++){
             if(ptemp_feature.size() > 0){
               pindlist[k] = indexing(ptemp_feature[k], limit1[n], limit1[n+1],
-                                     limit2[m], limit2[m+1], ident_feature[k], dedupe); //returns 2 column matrix of partially matching indices for field
+                                     limit2[m], limit2[m+1], false, dedupe); //returns 2 column matrix of partially matching indices for field
             }
           }
           templist[j] = indlist;
@@ -578,7 +578,7 @@ std::vector< std::vector<arma::vec> > m_func_par_b(const std::vector< std::vecto
         for(k = 0; k < ptemp_feature.size(); k++){
           if(ptemp_feature.size() > 0){
             pindlist[k] = indexing(ptemp_feature[k], (limit1[blk])[n], (limit1[blk])[n+1],
-                                   (limit2[blk])[m], (limit2[blk])[m+1], ident_feature[k], dedupe[blk]); //returns 2 column matrix of partially matching indices for field
+                                   (limit2[blk])[m], (limit2[blk])[m+1], false, dedupe[blk]); //returns 2 column matrix of partially matching indices for field
           }
         }
         templist[j] = indlist;
