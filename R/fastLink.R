@@ -556,7 +556,8 @@ fastLink <- function(dfA, dfB, blocklist = NULL, varnames,
       thresh_ind = which.min(abs(cumsum(ordered_counts) - trgt_count))
       threshold.match = sort(resultsEM$zeta.j,decreasing = T)[thresh_ind]
       if(threshold.match < 0.5 & thresh_ind == 1){
-        cat('No patterns have match probabilities above 0.5. Setting threshold to 0.85 and returning no matches. \n')
+        cat('***No patterns have match probabilities above 0.5. Setting threshold to 0.85 and returning no matches.*** \n')
+        
         threshold.match = 0.85
       }else{
         cat('Selected match probability threshold is: ', threshold.match,'\n')

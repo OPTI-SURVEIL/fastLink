@@ -19,7 +19,7 @@ getPatterns <- function(matchesA, matchesB, varnames,
                         partial.match, gammalist){
     
   if(length(matchesA) == 0){
-    cat('No matches found, returning NULL for matched agreement patterns')
+    cat('No matches found, returning NULL for matched agreement patterns\n')
     return(NULL)
   } 
     ## --------------

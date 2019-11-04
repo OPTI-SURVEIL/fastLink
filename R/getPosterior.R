@@ -17,7 +17,7 @@
 getPosterior <- function(matchesA, matchesB, EM, patterns){
       
     if(length(matchesA)==0) {
-      cat('No matches found, returning NULL for posterior matching probabilities')
+      cat('No matches found, returning NULL for posterior matching probabilities\n')
       return(NULL)}
     ## --------------
     ## Start function
