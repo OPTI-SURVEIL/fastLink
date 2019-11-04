@@ -17,7 +17,7 @@
 #' @export
 getPatterns <- function(matchesA, matchesB, varnames,
                         partial.match, gammalist){
-    
+    if(length(matchesA) == 0) return(NULL)
     ## --------------
     ## Start function
     ## --------------
