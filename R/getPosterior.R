@@ -15,7 +15,10 @@
 #' @author Ben Fifield <benfifield@gmail.com>
 #' @export
 getPosterior <- function(matchesA, matchesB, EM, patterns){
-
+      
+    if(length(matchesA)==0) {
+      cat('No matches found, returning NULL for posterior matching probabilities')
+      return(NULL)}
     ## --------------
     ## Start function
     ## --------------

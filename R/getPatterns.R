@@ -17,7 +17,11 @@
 #' @export
 getPatterns <- function(matchesA, matchesB, varnames,
                         partial.match, gammalist){
-    if(length(matchesA) == 0) return(NULL)
+    
+  if(length(matchesA) == 0){
+    cat('No matches found, returning NULL for matched agreement patterns')
+    return(NULL)
+  } 
     ## --------------
     ## Start function
     ## --------------
