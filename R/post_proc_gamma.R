@@ -240,7 +240,8 @@ post_proc_gamma = function(dfA,dfB,varname = 'Name', fastlinkres, gammalist, iso
     }
     scores = do.call(method, c(list(tlist1, tlist2), method.args,nthread = n.thread))
     scores = fit.isored(isoreg,scores)
-    scores = uppers / ((1 / scores- 1) / ((1-isoreg$p.m)/isoreg$p.m) * ((1-priors)/priors) + 1)
+    #scores = uppers / ((1 / scores- 1) / ((1-isoreg$p.m)/isoreg$p.m) * ((1-priors)/priors) + 1) #if isoreg is based on name matching
+    scores = 1 / ((1 / scores- 1) / ((1-isoreg$p.m)/isoreg$p.m) * ((1-priors)/priors) + 1) #if isoreg is based on record pairs
     
     bins = .bincode(scores, newzeta, include.lowest = T)
     if(diceroll.gamma){
