@@ -121,9 +121,6 @@ emlinklog <- function(patterns, nobs.a, nobs.b,
     p.gamma.k.j.m <- matrix(rep(NA, N * nfeatures), nrow = nfeatures, ncol = N)
     p.gamma.k.j.u <- matrix(rep(NA, N * nfeatures), nrow = nfeatures, ncol = N)
     
-    p.gamma.j.m <- matrix(rep(NA, N), nrow = N, ncol = 1)
-    p.gamma.j.u <- matrix(rep(NA, N), nrow = N, ncol = 1)
-    
     for (i in 1:nfeatures) {
         temp.01 <- temp.02 <- gamma.j.k[, i]
         temp.1 <- unique(na.omit(temp.01))
@@ -139,12 +136,18 @@ emlinklog <- function(patterns, nobs.a, nobs.b,
     
     sumlog <- function(x) { sum(log(x), na.rm = T) }
     
-    p.gamma.j.m <- as.matrix((apply(p.gamma.k.j.m, 2, sumlog)))
-    p.gamma.j.m <- exp(p.gamma.j.m)
+    if(is.null(p.gamma.j.m)){
+      p.gamma.j.m <- matrix(rep(NA, N), nrow = N, ncol = 1)
+      p.gamma.j.m <- as.matrix((apply(p.gamma.k.j.m, 2, sumlog)))
+      p.gamma.j.m <- exp(p.gamma.j.m)
+    }
     
-    p.gamma.j.u <- as.matrix((apply(p.gamma.k.j.u, 2, sumlog)))
-    p.gamma.j.u <- exp(p.gamma.j.u)
-
+    if(is.null(p.gamma.j.u)){
+      p.gamma.j.u <- matrix(rep(NA, N), nrow = N, ncol = 1)
+      p.gamma.j.u <- as.matrix((apply(p.gamma.k.j.u, 2, sumlog)))
+      p.gamma.j.u <- exp(p.gamma.j.u)
+    }
+    
     delta <- 1
     count <- 1
     warn.once <- 1
